@@ -10,6 +10,7 @@ const dataDir = path.join(rootDir, "data");
 const uploadDir = path.join(publicDir, "uploads");
 const previewDir = path.join(uploadDir, "previews");
 const dbPath = path.join(dataDir, "memories.json");
+const geocodeCachePath = path.join(dataDir, "geocode-cache.json");
 const clients = new Set();
 
 const mimeTypes = {
@@ -61,6 +62,15 @@ function writeMemories(memories) {
   fs.writeFileSync(dbPath, JSON.stringify(memories, null, 2));
 }
 
+function readGeocodeCache() {
+  if (!fs.existsSync(geocodeCachePath)) return {};
+  return JSON.parse(fs.readFileSync(geocodeCachePath, "utf8"));
+}
+
+function writeGeocodeCache(cache) {
+  fs.writeFileSync(geocodeCachePath, JSON.stringify(cache, null, 2));
+}
+
 function sendJson(res, status, data) {
   res.writeHead(status, { "Content-Type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(data));
@@ -109,6 +119,63 @@ function isImageFile(file) {
   const mime = String(file.mime || "");
   const ext = path.extname(file.name || "").toLowerCase();
   return mime.startsWith("image/") || [".heic", ".heif", ".jpg", ".jpeg", ".png", ".webp"].includes(ext);
+}
+
+function knownPlaceCoords(place) {
+  const key = String(place || "").toLowerCase().trim();
+  const places = {
+    berlin: { lat: 52.52, lng: 13.405, label: "Berlin, Deutschland" },
+    hamburg: { lat: 53.5511, lng: 9.9937, label: "Hamburg, Deutschland" },
+    muenster: { lat: 51.9607, lng: 7.6261, label: "Muenster, Deutschland" },
+    münster: { lat: 51.9607, lng: 7.6261, label: "Münster, Deutschland" },
+    muenchen: { lat: 48.1372, lng: 11.5755, label: "Muenchen, Deutschland" },
+    münchen: { lat: 48.1372, lng: 11.5755, label: "München, Deutschland" },
+    koeln: { lat: 50.9375, lng: 6.9603, label: "Koeln, Deutschland" },
+    köln: { lat: 50.9375, lng: 6.9603, label: "Köln, Deutschland" },
+    duesseldorf: { lat: 51.2277, lng: 6.7735, label: "Duesseldorf, Deutschland" },
+    düsseldorf: { lat: 51.2277, lng: 6.7735, label: "Düsseldorf, Deutschland" },
+    frankfurt: { lat: 50.1109, lng: 8.6821, label: "Frankfurt am Main, Deutschland" },
+  };
+  return places[key] || null;
+}
+
+async function geocodePlace(place) {
+  if (!place || place === "Unbekannter Ort") return null;
+  const known = knownPlaceCoords(place);
+  if (known) return { ...known, source: "known-place" };
+
+  const cacheKey = String(place).toLowerCase().trim();
+  const cache = readGeocodeCache();
+  if (cache[cacheKey]) return cache[cacheKey];
+
+  const query = /,/.test(place) ? place : `${place}, Deutschland`;
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "1");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("accept-language", "de");
+  url.searchParams.set("q", query);
+
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "charleen-raoul-erinnerungen/1.0 (local personal website)",
+      "Accept": "application/json",
+    },
+  });
+  if (!response.ok) return null;
+  const results = await response.json();
+  const first = results[0];
+  if (!first) return null;
+
+  const result = {
+    lat: Number(first.lat),
+    lng: Number(first.lon),
+    label: first.display_name,
+    source: "nominatim",
+  };
+  cache[cacheKey] = result;
+  writeGeocodeCache(cache);
+  return result;
 }
 
 function extractBasicImageMetadata(filePath) {
@@ -180,20 +247,23 @@ function parseMultipart(buffer, contentType) {
   return { fields, files };
 }
 
-function buildMemory(fields, files) {
+async function buildMemory(fields, files) {
   const now = new Date().toISOString();
   const primaryImage = files.find(isImageFile);
   const imageMetadata = primaryImage?.metadata || {};
+  const geocoded = (!fields.lat || !fields.lng) ? await geocodePlace(fields.place) : null;
   const date = fields.date || imageMetadata.date || now.slice(0, 10);
   const place = fields.place || "Unbekannter Ort";
+  const lat = fields.lat ? Number(fields.lat) : geocoded?.lat ?? null;
+  const lng = fields.lng ? Number(fields.lng) : geocoded?.lng ?? null;
 
   return {
     id: `memory-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     title: fields.title || `${place} · ${date}`,
     date,
     place,
-    lat: fields.lat ? Number(fields.lat) : null,
-    lng: fields.lng ? Number(fields.lng) : null,
+    lat,
+    lng,
     type: fields.type || (files.some(isImageFile) ? "photo" : "note"),
     note: fields.note || "",
     tags: Array.from(new Set([...normalizeTags(fields.tags), ...(primaryImage ? ["foto"] : [])])),
@@ -203,6 +273,10 @@ function buildMemory(fields, files) {
       takenAt: imageMetadata.takenAt || "",
       camera: "",
       dimensions: null,
+      geocoding: geocoded ? {
+        label: geocoded.label,
+        source: geocoded.source,
+      } : null,
     },
     createdAt: now,
     updatedAt: now,
@@ -266,7 +340,7 @@ const server = http.createServer(async (req, res) => {
       const body = await collectBody(req);
       const { fields, files } = parseMultipart(body, req.headers["content-type"] || "");
       const memories = readMemories();
-      const memory = buildMemory(fields, files);
+      const memory = await buildMemory(fields, files);
       memories.unshift(memory);
       writeMemories(memories);
       broadcast("memoriesUpdated", memories);

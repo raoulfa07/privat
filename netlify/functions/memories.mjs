@@ -92,6 +92,63 @@ function inferPlace(lat, lng) {
   return nearest && nearest.distance < 0.45 ? nearest.name : `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
 }
 
+function knownPlaceCoords(place) {
+  const key = String(place || "").toLowerCase().trim();
+  const places = {
+    berlin: { lat: 52.52, lng: 13.405, label: "Berlin, Deutschland" },
+    hamburg: { lat: 53.5511, lng: 9.9937, label: "Hamburg, Deutschland" },
+    muenster: { lat: 51.9607, lng: 7.6261, label: "Muenster, Deutschland" },
+    münster: { lat: 51.9607, lng: 7.6261, label: "Münster, Deutschland" },
+    muenchen: { lat: 48.1372, lng: 11.5755, label: "Muenchen, Deutschland" },
+    münchen: { lat: 48.1372, lng: 11.5755, label: "München, Deutschland" },
+    koeln: { lat: 50.9375, lng: 6.9603, label: "Koeln, Deutschland" },
+    köln: { lat: 50.9375, lng: 6.9603, label: "Köln, Deutschland" },
+    duesseldorf: { lat: 51.2277, lng: 6.7735, label: "Duesseldorf, Deutschland" },
+    düsseldorf: { lat: 51.2277, lng: 6.7735, label: "Düsseldorf, Deutschland" },
+    frankfurt: { lat: 50.1109, lng: 8.6821, label: "Frankfurt am Main, Deutschland" },
+  };
+  return places[key] || null;
+}
+
+async function geocodePlace(place) {
+  if (!place || place === "Unbekannter Ort") return null;
+  const known = knownPlaceCoords(place);
+  if (known) return { ...known, source: "known-place" };
+
+  const cacheKey = String(place).toLowerCase().trim();
+  const cacheStore = getStore("geocode-cache");
+  const cached = await cacheStore.get(cacheKey, { type: "json" });
+  if (cached) return cached;
+
+  const query = /,/.test(place) ? place : `${place}, Deutschland`;
+  const url = new URL("https://nominatim.openstreetmap.org/search");
+  url.searchParams.set("format", "jsonv2");
+  url.searchParams.set("limit", "1");
+  url.searchParams.set("addressdetails", "1");
+  url.searchParams.set("accept-language", "de");
+  url.searchParams.set("q", query);
+
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "charleen-raoul-erinnerungen/1.0 (Netlify personal website)",
+      "Accept": "application/json",
+    },
+  });
+  if (!response.ok) return null;
+  const results = await response.json();
+  const first = results[0];
+  if (!first) return null;
+
+  const result = {
+    lat: Number(first.lat),
+    lng: Number(first.lon),
+    label: first.display_name,
+    source: "nominatim",
+  };
+  await cacheStore.setJSON(cacheKey, result);
+  return result;
+}
+
 async function readMemories() {
   const store = getStore("memory-data");
   const memories = await store.get("memories", { type: "json" });
@@ -155,12 +212,13 @@ async function filesFromForm(form) {
   return files;
 }
 
-function buildMemory(fields, files) {
+async function buildMemory(fields, files) {
   const now = new Date().toISOString();
   const primaryImage = files.find(isImageFile);
   const imageMetadata = primaryImage?.metadata || {};
-  const lat = fields.lat ? Number(fields.lat) : null;
-  const lng = fields.lng ? Number(fields.lng) : null;
+  const geocoded = (!fields.lat || !fields.lng) ? await geocodePlace(fields.place) : null;
+  const lat = fields.lat ? Number(fields.lat) : geocoded?.lat ?? null;
+  const lng = fields.lng ? Number(fields.lng) : geocoded?.lng ?? null;
   const date = fields.date || imageMetadata.date || now.slice(0, 10);
   const place = fields.place || inferPlace(lat, lng) || "Unbekannter Ort";
   const autoTags = [
@@ -185,6 +243,10 @@ function buildMemory(fields, files) {
       takenAt: imageMetadata.takenAt || "",
       camera: "",
       dimensions: null,
+      geocoding: geocoded ? {
+        label: geocoded.label,
+        source: geocoded.source,
+      } : null,
     },
     createdAt: now,
     updatedAt: now,
@@ -203,7 +265,7 @@ export default async (request) => {
     const fields = Object.fromEntries([...form.entries()].filter(([, value]) => typeof value === "string"));
     const files = await filesFromForm(form);
     const memories = await readMemories();
-    const memory = buildMemory(fields, files);
+    const memory = await buildMemory(fields, files);
     memories.unshift(memory);
     await writeMemories(memories);
     return json(memory, 201);
