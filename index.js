@@ -1,12 +1,14 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const { spawnSync } = require("child_process");
 const { URL } = require("url");
 
 const rootDir = __dirname;
 const publicDir = path.join(rootDir, "public");
 const dataDir = path.join(rootDir, "data");
 const uploadDir = path.join(publicDir, "uploads");
+const previewDir = path.join(uploadDir, "previews");
 const dbPath = path.join(dataDir, "memories.json");
 const clients = new Set();
 
@@ -46,6 +48,7 @@ const seedMemories = [
 function ensureStorage() {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(uploadDir, { recursive: true });
+  fs.mkdirSync(previewDir, { recursive: true });
   if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify(seedMemories, null, 2));
 }
 
@@ -119,6 +122,17 @@ function extractBasicImageMetadata(filePath) {
   return metadata;
 }
 
+function createLocalPreview(filePath, storedName) {
+  const ext = path.extname(storedName).toLowerCase();
+  if (![".heic", ".heif"].includes(ext)) return "";
+
+  const previewName = `${path.basename(storedName, ext)}.jpg`;
+  const previewPath = path.join(previewDir, previewName);
+  const result = spawnSync("sips", ["-s", "format", "jpeg", filePath, "--out", previewPath], { encoding: "utf8" });
+  if (result.status !== 0 || !fs.existsSync(previewPath)) return "";
+  return `/uploads/previews/${previewName}`;
+}
+
 function parseMultipart(buffer, contentType) {
   const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/i);
   if (!boundaryMatch) return { fields: {}, files: [] };
@@ -148,11 +162,12 @@ function parseMultipart(buffer, contentType) {
       const mime = mimeFromFilename(filename, rawMime);
       fs.writeFileSync(filePath, fileBuffer);
       const metadata = isImageFile({ name: filename, mime }) ? extractBasicImageMetadata(filePath) : {};
+      const previewUrl = isImageFile({ name: filename, mime }) ? createLocalPreview(filePath, storedName) : "";
       files.push({
         id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
         name: filename,
         url: `/uploads/${storedName}`,
-        previewUrl: "",
+        previewUrl,
         mime,
         size: fileBuffer.length,
         metadata,

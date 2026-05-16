@@ -8,6 +8,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/file"
+  to = "/.netlify/functions/file"
+  status = 200
+
+[[redirects]]
   from = "/events"
   to = "/.netlify/functions/events"
   status = 200

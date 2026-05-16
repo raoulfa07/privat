@@ -145,7 +145,7 @@ async function filesFromForm(form) {
     files.push({
       id: `file-${crypto.randomUUID()}`,
       name: file.name,
-      url: `/.netlify/functions/file?key=${encodeURIComponent(key)}`,
+      url: `/api/file?key=${encodeURIComponent(key)}`,
       previewUrl: "",
       mime,
       size: file.size,

@@ -1234,12 +1234,65 @@ el("dropzone").addEventListener("drop", (event) => {
   el("fileInput").dispatchEvent(new Event("change"));
 });
 
+function fieldValue(form, name) {
+  return form.querySelector(`[name="${name}"]`)?.value || "";
+}
+
+async function imagePreviewFile(file) {
+  if (!file.type.startsWith("image/") || file.type === "image/gif") return null;
+
+  const image = new Image();
+  const objectUrl = URL.createObjectURL(file);
+  try {
+    await new Promise((resolve, reject) => {
+      image.onload = resolve;
+      image.onerror = reject;
+      image.src = objectUrl;
+    });
+
+    const maxSide = 1800;
+    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
+    const width = Math.max(1, Math.round(image.naturalWidth * scale));
+    const height = Math.max(1, Math.round(image.naturalHeight * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(image, 0, 0, width, height);
+
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.88));
+    if (!blob) return null;
+    const baseName = file.name.replace(/\.[^.]+$/, "") || "bild";
+    return new File([blob], `${baseName}-preview.jpg`, { type: "image/jpeg" });
+  } catch {
+    return null;
+  } finally {
+    URL.revokeObjectURL(objectUrl);
+  }
+}
+
+async function uploadFormData(form) {
+  const data = new FormData();
+  ["title", "date", "type", "place", "lat", "lng", "tags", "note"].forEach((name) => {
+    data.append(name, fieldValue(form, name));
+  });
+
+  const files = Array.from(el("fileInput").files || []);
+  for (const file of files) {
+    const preview = await imagePreviewFile(file);
+    if (preview) data.append("files", preview);
+    data.append("files", file);
+  }
+  return data;
+}
+
 el("memoryForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = new FormData(event.currentTarget);
+  const data = await uploadFormData(event.currentTarget);
   const response = await fetch("/api/memories", { method: "POST", body: data });
   if (!response.ok) {
-    alert("Die Erinnerung konnte nicht gespeichert werden.");
+    const message = await response.text();
+    alert(`Die Erinnerung konnte nicht gespeichert werden.\n${message}`);
     return;
   }
   event.currentTarget.reset();
