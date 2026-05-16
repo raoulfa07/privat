@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Charleen & Raoul · Erinnerungen</title>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --ink: #22211f;
+    --muted: #716e68;
+    --paper: #fbf8f1;
+    --soft: #f1eadc;
+    --line: rgba(34, 33, 31, 0.12);
+    --rose: #d95f76;
+    --aqua: #247f87;
+    --moss: #607848;
+    --gold: #c28d2e;
+    --night: #2f3944;
+    --white: #fffdf8;
+    --shadow: 0 18px 50px rgba(47, 57, 68, 0.14);
+    --radius: 8px;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    color: var(--ink);
+    background: var(--paper);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  button, input, textarea, select { font: inherit; }
+  button { cursor: pointer; }
+
+  .app {
+    min-height: 100vh;
+    display: grid;
+    grid-template-columns: 360px minmax(0, 1fr);
+  }
+
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow: auto;
+    padding: 28px;
+    background: var(--white);
+    border-right: 1px solid var(--line);
+  }
+
+  .file-warning {
+    display: none;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    border: 1px solid rgba(217, 95, 118, 0.35);
+    border-radius: var(--radius);
+    color: #7a2435;
+    background: rgba(217, 95, 118, 0.1);
+    line-height: 1.35;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 26px;
+  }
+
+  .brand h1 {
+    margin: 0;
+    font-size: 32px;
+    line-height: 0.98;
+    letter-spacing: 0;
+  }
+
+  .live {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 99px;
+    background: var(--gold);
+  }
+
+  .dot.on { background: var(--moss); box-shadow: 0 0 0 4px rgba(96, 120, 72, 0.13); }
+
+  .search {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .search input, .search select, .memory-form input, .memory-form textarea {
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 12px 13px;
+    outline: none;
+  }
+
+  .search input:focus, .search select:focus, .memory-form input:focus, .memory-form textarea:focus {
+    border-color: rgba(36, 127, 135, 0.45);
+    box-shadow: 0 0 0 3px rgba(36, 127, 135, 0.11);
+  }
+
+  .tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    padding: 5px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--soft);
+    margin-bottom: 22px;
+  }
+
+  .tabs button {
+    min-height: 36px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--muted);
+  }
+
+  .tabs button.active {
+    color: var(--ink);
+    background: var(--white);
+    box-shadow: 0 4px 14px rgba(34, 33, 31, 0.09);
+  }
+
+  .memory-form {
+    display: grid;
+    gap: 10px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+  }
+
+  .memory-form h2 {
+    margin: 0 0 4px;
+    font-size: 18px;
+  }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .dropzone {
+    display: grid;
+    place-items: center;
+    min-height: 112px;
+    border: 1px dashed rgba(36, 127, 135, 0.5);
+    border-radius: var(--radius);
+    color: var(--aqua);
+    background: rgba(36, 127, 135, 0.06);
+    text-align: center;
+    padding: 16px;
+  }
+
+  .dropzone strong { display: block; color: var(--ink); margin-bottom: 5px; }
+  .dropzone input { display: none; }
+
+  .primary {
+    border: 0;
+    border-radius: var(--radius);
+    padding: 13px 16px;
+    color: white;
+    background: var(--aqua);
+    font-weight: 700;
+  }
+
+  .main {
+    min-width: 0;
+    padding: 28px;
+  }
+
+  .hero {
+    position: relative;
+    min-height: min(78vh, 760px);
+    display: grid;
+    align-content: end;
+    gap: 18px;
+    padding: 34px;
+    margin-bottom: 24px;
+    color: white;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 64% 42%, rgba(80, 190, 202, 0.28), transparent 36%),
+      linear-gradient(160deg, #111820, #25313a 56%, #0d1014);
+  }
+
+  .hero h2 {
+    position: relative;
+    z-index: 2;
+    max-width: 780px;
+    margin: 0;
+    font-size: clamp(40px, 7vw, 92px);
+    line-height: 0.93;
+    letter-spacing: 0;
+  }
+
+  .hero-globe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(90deg, rgba(17, 24, 32, 0.86), rgba(17, 24, 32, 0.26) 48%, rgba(17, 24, 32, 0.1)),
+      linear-gradient(0deg, rgba(17, 24, 32, 0.86), transparent 50%);
+    pointer-events: none;
+  }
+
+  .hero-kicker {
+    position: relative;
+    z-index: 2;
+    width: fit-content;
+    padding: 7px 10px;
+    border: 1px solid rgba(255, 253, 248, 0.22);
+    border-radius: 999px;
+    color: rgba(255, 253, 248, 0.82);
+    background: rgba(255, 253, 248, 0.08);
+    backdrop-filter: blur(10px);
+  }
+
+  .stats {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .stat {
+    display: inline-flex;
+    gap: 8px;
+    align-items: baseline;
+    padding: 8px 11px;
+    border-radius: 999px;
+    color: var(--ink);
+    background: rgba(255, 253, 248, 0.88);
+  }
+
+  .stat b { color: var(--rose); }
+
+  .views { display: none; }
+  .views.active { display: block; }
+
+  .memory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--white);
+    box-shadow: 0 10px 28px rgba(47, 57, 68, 0.08);
+  }
+
+  .thumb {
+    aspect-ratio: 4 / 3;
+    background: linear-gradient(135deg, rgba(217, 95, 118, 0.17), rgba(36, 127, 135, 0.16));
+    display: grid;
+    place-items: center;
+    color: var(--muted);
+    overflow: hidden;
+  }
+
+  .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+  }
+
+  .card:hover .thumb img { transform: scale(1.06); }
+
+  .card-body {
+    padding: 14px;
+    display: grid;
+    gap: 8px;
+  }
+
+  .card h3 {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  .tag {
+    display: inline-flex;
+    padding: 4px 7px;
+    border-radius: 999px;
+    color: var(--night);
+    background: var(--soft);
+    font-size: 12px;
+  }
+
+  .note {
+    color: var(--muted);
+    line-height: 1.45;
+  }
+
+  .details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .detail-pill {
+    padding: 4px 7px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: rgba(255, 253, 248, 0.72);
+  }
+
+  .map-shell {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    min-height: 680px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--white);
+    box-shadow: var(--shadow);
+  }
+
+  .map {
+    position: relative;
+    min-height: 680px;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 45%, rgba(36, 127, 135, 0.28), transparent 38%),
+      linear-gradient(160deg, #141b22, #25313a 48%, #121519);
+  }
+
+  .globe-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  .globe-focus {
+    position: absolute;
+    left: 22px;
+    bottom: 22px;
+    z-index: 2;
+    max-width: min(420px, calc(100% - 44px));
+    padding: 16px 18px;
+    border: 1px solid rgba(255, 253, 248, 0.18);
+    border-radius: var(--radius);
+    color: var(--white);
+    background: rgba(20, 27, 34, 0.62);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.22);
+  }
+
+  .globe-focus strong {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 19px;
+  }
+
+  .globe-focus span {
+    color: rgba(255, 253, 248, 0.76);
+  }
+
+  .map-tools {
+    position: absolute;
+    left: 18px;
+    top: 18px;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border-radius: var(--radius);
+    background: rgba(255, 253, 248, 0.9);
+    backdrop-filter: blur(12px);
+  }
+
+  .map-tools button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--white);
+  }
+
+  .map-tools input { width: 150px; accent-color: var(--aqua); }
+
+  .map-list {
+    border-left: 1px solid var(--line);
+    overflow: auto;
+  }
+
+  .map-item {
+    padding: 16px;
+    border-bottom: 1px solid var(--line);
+    cursor: pointer;
+  }
+
+  .map-item:hover { background: var(--soft); }
+  .map-item.active { background: rgba(36, 127, 135, 0.1); box-shadow: inset 3px 0 0 var(--aqua); }
+  .map-item strong { display: block; margin-bottom: 5px; }
+
+  .timeline {
+    position: relative;
+    max-width: 880px;
+    margin: 0 auto;
+  }
+
+  .timeline::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--line);
+  }
+
+  .moment {
+    position: relative;
+    display: grid;
+    grid-template-columns: 46px minmax(0, 1fr);
+    gap: 16px;
+    margin-bottom: 18px;
+  }
+
+  .moment-dot {
+    width: 38px;
+    height: 38px;
+    border: 7px solid var(--paper);
+    border-radius: 50%;
+    background: var(--aqua);
+    z-index: 1;
+  }
+
+  .moment-card {
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--white);
+    padding: 17px;
+  }
+
+  .lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    display: none;
+    place-items: center;
+    padding: 28px;
+    background: rgba(34, 33, 31, 0.76);
+  }
+
+  .lightbox.active { display: grid; }
+
+  .lightbox-panel {
+    width: min(1080px, 100%);
+    max-height: 92vh;
+    overflow: auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+    border-radius: var(--radius);
+    background: var(--white);
+  }
+
+  .lightbox-media {
+    min-height: 420px;
+    background: var(--night);
+    display: grid;
+    place-items: center;
+  }
+
+  .lightbox-media img {
+    max-width: 100%;
+    max-height: 82vh;
+  }
+
+  .lightbox-info {
+    padding: 22px;
+    display: grid;
+    align-content: start;
+    gap: 12px;
+  }
+
+  .close {
+    justify-self: end;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--paper);
+    padding: 8px 10px;
+  }
+
+  .empty {
+    padding: 52px;
+    text-align: center;
+    color: var(--muted);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    background: var(--white);
+  }
+
+  @media (max-width: 920px) {
+    .app { grid-template-columns: 1fr; }
+    .sidebar { position: relative; height: auto; order: 2; }
+    .main { order: 1; }
+    .main { padding: 18px; }
+    .hero { min-height: 620px; padding: 24px; }
+    .map-shell, .lightbox-panel { grid-template-columns: 1fr; }
+    .map, .map-shell { min-height: 520px; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <h1>Charleen<br>& Raoul</h1>
+      <span class="live"><span class="dot" id="liveDot"></span><span id="liveText">offline</span></span>
+    </div>
+
+    <div class="file-warning" id="fileWarning">
+      Diese Seite muss ueber den lokalen Server geoeffnet werden: http://localhost:3000
+    </div>
+
+    <div class="search">
+      <input id="searchInput" type="search" placeholder="Orte, Daten, Bilder, Notizen suchen">
+      <select id="typeFilter" aria-label="Erinnerungstyp filtern">
+        <option value="all">Alles anzeigen</option>
+        <option value="photo">Bilder</option>
+        <option value="chat">Chats & Screenshots</option>
+        <option value="note">Notizen</option>
+        <option value="place">Orte</option>
+      </select>
+    </div>
+
+    <nav class="tabs" aria-label="Ansichten">
+      <button data-view="gallery">Bilder</button>
+      <button class="active" data-view="map">Karte</button>
+      <button data-view="timeline">Zeit</button>
+    </nav>
+
+    <form class="memory-form" id="memoryForm">
+      <h2>Neue Erinnerung</h2>
+      <input name="title" placeholder="Titel">
+      <div class="form-grid">
+        <input name="date" type="date">
+        <select name="type">
+          <option value="photo">Bild</option>
+          <option value="chat">Chat</option>
+          <option value="note">Notiz</option>
+          <option value="place">Ort</option>
+        </select>
+      </div>
+      <input name="place" placeholder="Ort">
+      <div class="form-grid">
+        <input name="lat" inputmode="decimal" placeholder="Breite">
+        <input name="lng" inputmode="decimal" placeholder="Laenge">
+      </div>
+      <input name="tags" placeholder="Tags, durch Komma getrennt">
+      <textarea name="note" rows="4" placeholder="Was soll hier nicht verloren gehen?"></textarea>
+      <label class="dropzone" id="dropzone">
+        <input id="fileInput" name="files" type="file" multiple accept="image/*,.heic,.heif,.pdf,.txt">
+        <span><strong>Bilder oder Screenshots hochladen</strong><span id="fileLabel">Dateien hier ablegen oder auswaehlen</span></span>
+      </label>
+      <button class="primary" type="submit">Erinnerung speichern</button>
+    </form>
+  </aside>
+
+  <main class="main">
+    <section class="hero">
+      <canvas class="hero-globe" id="heroGlobeCanvas" aria-label="Animierter Globus"></canvas>
+      <div class="hero-kicker">Interaktive Weltkarte eurer Erinnerungen</div>
+      <h2>Von der Erde direkt in eure Momente.</h2>
+      <div class="stats" id="stats"></div>
+    </section>
+
+    <section class="views" id="galleryView">
+      <div class="memory-grid" id="memoryGrid"></div>
+    </section>
+
+    <section class="views active" id="mapView">
+      <div class="map-shell">
+        <div class="map" id="map">
+          <div class="map-tools">
+            <button type="button" id="zoomOut" aria-label="Globus verkleinern">−</button>
+            <input id="zoomRange" type="range" min="0.82" max="2.35" value="1" step="0.03" aria-label="Globuszoom">
+            <button type="button" id="zoomIn" aria-label="Globus vergroessern">+</button>
+          </div>
+          <canvas class="globe-canvas" id="globeCanvas" aria-label="Interaktiver Globus"></canvas>
+          <div class="globe-focus" id="globeFocus">
+            <strong>Welt der Erinnerungen</strong>
+            <span>Waehle einen Ort aus der Liste.</span>
+          </div>
+        </div>
+        <div class="map-list" id="mapList"></div>
+      </div>
+    </section>
+
+    <section class="views" id="timelineView">
+      <div class="timeline" id="timeline"></div>
+    </section>
+  </main>
+</div>
+
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-panel">
+    <div class="lightbox-media" id="lightboxMedia"></div>
+    <div class="lightbox-info" id="lightboxInfo"></div>
+  </div>
+</div>
+
+<script>
+const state = {
+  memories: [],
+  filtered: [],
+  view: "map",
+  zoom: 1,
+  selectedMemoryId: null,
+  globe: {
+    yaw: -0.22,
+    pitch: 0.18,
+    zoom: 1,
+    targetYaw: -0.22,
+    targetPitch: 0.18,
+    targetZoom: 1,
+    points: [],
+    projected: [],
+    spinning: true,
+  },
+};
+
+const el = (id) => document.getElementById(id);
+const imageFile = (memory) => (memory.files || []).find((file) => file.mime && (file.mime.startsWith("image/") || [".heic", ".heif"].some((ext) => file.name.toLowerCase().endsWith(ext))));
+const imageUrl = (file) => file ? (file.previewUrl || file.url) : "";
+const fmtDate = (date) => date ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(`${date}T12:00:00`)) : "ohne Datum";
+const globeCanvas = el("globeCanvas");
+const globeCtx = globeCanvas.getContext("2d");
+const heroGlobeCanvas = el("heroGlobeCanvas");
+const heroGlobeCtx = heroGlobeCanvas.getContext("2d");
+const earthTexture = {
+  image: new Image(),
+  ready: false,
+  canvas: document.createElement("canvas"),
+  ctx: null,
+  data: null,
+  width: 0,
+  height: 0,
+};
+earthTexture.image.onload = () => {
+  earthTexture.width = earthTexture.image.naturalWidth;
+  earthTexture.height = earthTexture.image.naturalHeight;
+  earthTexture.canvas.width = earthTexture.width;
+  earthTexture.canvas.height = earthTexture.height;
+  earthTexture.ctx = earthTexture.canvas.getContext("2d");
+  earthTexture.ctx.drawImage(earthTexture.image, 0, 0);
+  earthTexture.data = earthTexture.ctx.getImageData(0, 0, earthTexture.width, earthTexture.height).data;
+  earthTexture.ready = true;
+};
+earthTexture.image.src = "/assets/earth-day.jpg";
+const knownPlaces = {
+  berlin: { lat: 52.52, lng: 13.405 },
+  hamburg: { lat: 53.5511, lng: 9.9937 },
+  muenchen: { lat: 48.1372, lng: 11.5755 },
+  münchen: { lat: 48.1372, lng: 11.5755 },
+  koeln: { lat: 50.9375, lng: 6.9603 },
+  köln: { lat: 50.9375, lng: 6.9603 },
+  duesseldorf: { lat: 51.2277, lng: 6.7735 },
+  düsseldorf: { lat: 51.2277, lng: 6.7735 },
+  frankfurt: { lat: 50.1109, lng: 8.6821 },
+};
+
+function escapeHtml(value) {
+  return String(value || "").replace(/[&<>"']/g, (char) => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
+  }[char]));
+}
+
+async function loadMemories() {
+  const q = encodeURIComponent(el("searchInput").value.trim());
+  const type = encodeURIComponent(el("typeFilter").value);
+  const response = await fetch(`/api/memories?q=${q}&type=${type}`);
+  state.memories = await response.json();
+  state.filtered = state.memories;
+  render();
+}
+
+function connectWS() {
+  if (location.hostname.includes("netlify.app")) {
+    el("liveDot").classList.add("on");
+    el("liveText").textContent = "online";
+    return;
+  }
+  const stream = new EventSource("/events");
+  stream.onopen = () => {
+    el("liveDot").classList.add("on");
+    el("liveText").textContent = "live";
+  };
+  stream.onerror = () => {
+    el("liveDot").classList.remove("on");
+    el("liveText").textContent = "verbindet";
+  };
+  stream.addEventListener("init", loadMemories);
+  stream.addEventListener("memoriesUpdated", loadMemories);
+}
+
+function render() {
+  renderStats();
+  renderGallery();
+  renderMap();
+  renderTimeline();
+}
+
+function renderStats() {
+  const images = state.filtered.reduce((sum, memory) => sum + (memory.files || []).filter((file) => file.mime.startsWith("image/")).length, 0);
+  const places = new Set(state.filtered.map((memory) => memory.place).filter(Boolean)).size;
+  el("stats").innerHTML = `
+    <span class="stat"><b>${state.filtered.length}</b> Erinnerungen</span>
+    <span class="stat"><b>${images}</b> Bilder</span>
+    <span class="stat"><b>${places}</b> Orte</span>
+  `;
+}
+
+function renderGallery() {
+  const memories = state.filtered;
+  if (!memories.length) {
+    el("memoryGrid").innerHTML = `<div class="empty">Noch nichts gefunden. Lade die erste Erinnerung hoch oder aendere die Suche.</div>`;
+    return;
+  }
+  el("memoryGrid").innerHTML = memories.map((memory) => {
+    const img = imageFile(memory);
+    const dimensions = memory.metadata?.dimensions ? `${memory.metadata.dimensions.width}x${memory.metadata.dimensions.height}` : "";
+    return `
+      <article class="card" onclick="focusMemory('${memory.id}')">
+        <div class="thumb">${img ? `<img src="${imageUrl(img)}" alt="${escapeHtml(memory.title)}">` : "Noch kein Bild"}</div>
+        <div class="card-body">
+          <h3>${escapeHtml(memory.title)}</h3>
+          <div class="meta"><span>${fmtDate(memory.date)}</span><span>${escapeHtml(memory.place)}</span></div>
+          <div>${(memory.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join(" ")}</div>
+          <div class="details">
+            ${memory.metadata?.camera ? `<span class="detail-pill">${escapeHtml(memory.metadata.camera)}</span>` : ""}
+            ${dimensions ? `<span class="detail-pill">${escapeHtml(dimensions)}</span>` : ""}
+          </div>
+          <p class="note">${escapeHtml(memory.note).slice(0, 170)}</p>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function hashMemory(memory) {
+  const key = String(memory.place || memory.title || memory.id);
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) hash = ((hash << 5) - hash) + key.charCodeAt(i);
+  return hash;
+}
+
+function memoryGeo(memory) {
+  if (Number.isFinite(memory.lat) && Number.isFinite(memory.lng)) {
+    return { lat: memory.lat, lng: memory.lng, approximate: false };
+  }
+  const placeKey = String(memory.place || "").toLowerCase().trim();
+  if (knownPlaces[placeKey]) return { ...knownPlaces[placeKey], approximate: false };
+  const hash = hashMemory(memory);
+  return {
+    lat: Math.max(-62, Math.min(72, ((Math.abs(hash >> 4) % 134) - 62))),
+    lng: (Math.abs(hash) % 320) - 160,
+    approximate: true,
+  };
+}
+
+function latLngToPoint(lat, lng) {
+  const latRad = lat * Math.PI / 180;
+  const lngRad = lng * Math.PI / 180;
+  return {
+    x: Math.cos(latRad) * Math.sin(lngRad),
+    y: Math.sin(latRad),
+    z: Math.cos(latRad) * Math.cos(lngRad),
+  };
+}
+
+function renderMap() {
+  const located = state.filtered.filter((memory) => memory.place || memory.lat || memory.lng);
+  state.globe.points = located.map((memory) => ({ memory, geo: memoryGeo(memory) }));
+
+  el("mapList").innerHTML = located.length ? located.map((memory) => `
+    <div class="map-item ${memory.id === state.selectedMemoryId ? "active" : ""}" onclick="focusMemory('${memory.id}')">
+      <strong>${escapeHtml(memory.place || memory.title)}</strong>
+      <span>${escapeHtml(memory.title)} · ${fmtDate(memory.date)}</span>
+    </div>
+  `).join("") : `<div class="empty">Fuege Orte oder Koordinaten hinzu, dann erscheinen sie hier.</div>`;
+  updateZoom();
+  updateGlobeFocus();
+}
+
+function renderTimeline() {
+  if (!state.filtered.length) {
+    el("timeline").innerHTML = `<div class="empty">Die Zeitleiste fuellt sich mit euren Erinnerungen.</div>`;
+    return;
+  }
+  el("timeline").innerHTML = state.filtered.map((memory) => `
+    <article class="moment" onclick="focusMemory('${memory.id}')">
+      <div class="moment-dot"></div>
+      <div class="moment-card">
+        <div class="meta">${fmtDate(memory.date)} · ${escapeHtml(memory.place)}</div>
+        <h3>${escapeHtml(memory.title)}</h3>
+        <p class="note">${escapeHtml(memory.note)}</p>
+      </div>
+    </article>
+  `).join("");
+}
+
+function openMemory(id) {
+  const memory = state.memories.find((item) => item.id === id);
+  if (!memory) return;
+  const img = imageFile(memory);
+  const dimensions = memory.metadata?.dimensions ? `${memory.metadata.dimensions.width}x${memory.metadata.dimensions.height}` : "";
+  el("lightboxMedia").innerHTML = img ? `<img src="${imageUrl(img)}" alt="${escapeHtml(memory.title)}">` : `<div style="color:white;padding:34px">Keine Bilddatei fuer diese Erinnerung.</div>`;
+  el("lightboxInfo").innerHTML = `
+    <button class="close" onclick="closeLightbox()">Schliessen</button>
+    <h2>${escapeHtml(memory.title)}</h2>
+    <div class="meta">${fmtDate(memory.date)} · ${escapeHtml(memory.place)}</div>
+    <div class="details">
+      ${memory.metadata?.camera ? `<span class="detail-pill">${escapeHtml(memory.metadata.camera)}</span>` : ""}
+      ${memory.metadata?.takenAt ? `<span class="detail-pill">${escapeHtml(memory.metadata.takenAt)}</span>` : ""}
+      ${dimensions ? `<span class="detail-pill">${escapeHtml(dimensions)}</span>` : ""}
+    </div>
+    <p class="note">${escapeHtml(memory.note)}</p>
+    <div>${(memory.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join(" ")}</div>
+    <div class="meta">${(memory.files || []).map((file) => escapeHtml(file.name)).join(" · ")}</div>
+  `;
+  el("lightbox").classList.add("active");
+}
+
+function closeLightbox() {
+  el("lightbox").classList.remove("active");
+}
+
+function activateView(view) {
+  document.querySelectorAll(".tabs button").forEach((item) => item.classList.toggle("active", item.dataset.view === view));
+  document.querySelectorAll(".views").forEach((item) => item.classList.remove("active"));
+  el(`${view}View`).classList.add("active");
+  state.view = view;
+  if (view === "map") resizeGlobe();
+}
+
+function focusMemory(id) {
+  const memory = state.memories.find((item) => item.id === id);
+  if (!memory) return;
+  activateView("map");
+  state.selectedMemoryId = id;
+  const geo = memoryGeo(memory);
+  state.globe.targetYaw = -geo.lng * Math.PI / 180;
+  state.globe.targetPitch = geo.lat * Math.PI / 360;
+  state.globe.targetZoom = 1.82;
+  state.globe.spinning = false;
+  el("zoomRange").value = state.globe.targetZoom;
+  updateZoom();
+  updateGlobeFocus();
+  renderMap();
+  setTimeout(() => openMemory(id), 950);
+}
+
+function updateZoom() {
+  state.globe.targetZoom = Number(el("zoomRange").value);
+}
+
+function updateGlobeFocus() {
+  const memory = state.memories.find((item) => item.id === state.selectedMemoryId);
+  if (!memory) {
+    el("globeFocus").innerHTML = `<strong>Welt der Erinnerungen</strong><span>Waehle einen Ort aus der Liste.</span>`;
+    return;
+  }
+  const geo = memoryGeo(memory);
+  el("globeFocus").innerHTML = `
+    <strong>${escapeHtml(memory.title)}</strong>
+    <span>${fmtDate(memory.date)} · ${escapeHtml(memory.place || "Ort offen")}${geo.approximate ? " · ungefaehr platziert" : ""}</span>
+  `;
+}
+
+function resizeCanvas(canvas) {
+  const rect = canvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const width = Math.max(320, Math.floor(rect.width * dpr));
+  const height = Math.max(320, Math.floor(rect.height * dpr));
+  if (canvas.width !== width || canvas.height !== height) {
+    canvas.width = width;
+    canvas.height = height;
+  }
+}
+
+function resizeGlobe() {
+  resizeCanvas(globeCanvas);
+  resizeCanvas(heroGlobeCanvas);
+}
+
+function projectGlobePoint(point, centerX, centerY, radius, options = state.globe) {
+  const cosYaw = Math.cos(options.yaw);
+  const sinYaw = Math.sin(options.yaw);
+  const x1 = point.x * cosYaw + point.z * sinYaw;
+  const z1 = -point.x * sinYaw + point.z * cosYaw;
+  const cosPitch = Math.cos(options.pitch);
+  const sinPitch = Math.sin(options.pitch);
+  const y2 = point.y * cosPitch - z1 * sinPitch;
+  const z2 = point.y * sinPitch + z1 * cosPitch;
+  return {
+    x: centerX + x1 * radius,
+    y: centerY - y2 * radius,
+    z: z2,
+    visible: z2 > -0.08,
+  };
+}
+
+function drawGlobe(now = 0) {
+  resizeGlobe();
+  const dpr = window.devicePixelRatio || 1;
+  const globe = state.globe;
+
+  globe.yaw += (globe.targetYaw - globe.yaw) * 0.055;
+  globe.pitch += (globe.targetPitch - globe.pitch) * 0.055;
+  globe.zoom += (globe.targetZoom - globe.zoom) * 0.06;
+  if (globe.spinning) {
+    globe.targetYaw += 0.0015;
+    globe.yaw += 0.0015;
+  }
+
+  paintGlobe(globeCtx, globeCanvas, {
+    yaw: globe.yaw,
+    pitch: globe.pitch,
+    zoom: globe.zoom,
+    points: globe.points,
+    selectedMemoryId: state.selectedMemoryId,
+    now,
+    collectProjection: true,
+  });
+  paintGlobe(heroGlobeCtx, heroGlobeCanvas, {
+    yaw: globe.yaw + 0.26,
+    pitch: globe.pitch - 0.04,
+    zoom: Math.max(1.08, globe.zoom * 1.08),
+    points: globe.points,
+    selectedMemoryId: state.selectedMemoryId,
+    now,
+    collectProjection: false,
+  });
+
+  requestAnimationFrame(drawGlobe);
+}
+
+function paintGlobe(ctx, canvas, options) {
+  const width = canvas.width;
+  const height = canvas.height;
+  const dpr = window.devicePixelRatio || 1;
+  ctx.clearRect(0, 0, width, height);
+  const centerX = width * 0.5;
+  const centerY = height * 0.5;
+  const baseRadius = Math.min(width, height) * 0.32 * options.zoom;
+  const radius = Math.min(baseRadius, Math.min(width, height) * 0.46);
+
+  const glow = ctx.createRadialGradient(centerX, centerY, radius * 0.2, centerX, centerY, radius * 1.7);
+  glow.addColorStop(0, "rgba(118, 190, 200, 0.3)");
+  glow.addColorStop(0.48, "rgba(36, 127, 135, 0.12)");
+  glow.addColorStop(1, "rgba(0, 0, 0, 0)");
+  ctx.fillStyle = glow;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius * 1.75, 0, Math.PI * 2);
+  ctx.fill();
+
+  if (earthTexture.ready) {
+    drawTexturedEarth(ctx, centerX, centerY, radius, options);
+  } else {
+    const ocean = ctx.createRadialGradient(centerX - radius * 0.32, centerY - radius * 0.4, radius * 0.08, centerX, centerY, radius);
+    ocean.addColorStop(0, "#80d2d9");
+    ocean.addColorStop(0.42, "#247f87");
+    ocean.addColorStop(1, "#123d50");
+    ctx.fillStyle = ocean;
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.clip();
+
+  const shade = ctx.createLinearGradient(centerX - radius, centerY - radius, centerX + radius, centerY + radius);
+  shade.addColorStop(0, "rgba(255,255,255,0.16)");
+  shade.addColorStop(0.45, "rgba(255,255,255,0)");
+  shade.addColorStop(1, "rgba(0,0,0,0.48)");
+  ctx.fillStyle = shade;
+  ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2);
+
+  ctx.restore();
+
+  const rim = ctx.createRadialGradient(centerX, centerY, radius * 0.76, centerX, centerY, radius * 1.08);
+  rim.addColorStop(0, "rgba(255,255,255,0)");
+  rim.addColorStop(0.72, "rgba(118,210,226,0.05)");
+  rim.addColorStop(1, "rgba(157,231,244,0.72)");
+  ctx.strokeStyle = rim;
+  ctx.lineWidth = 2.4 * dpr;
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+  ctx.stroke();
+
+  if (options.collectProjection) state.globe.projected = [];
+  for (const item of options.points) {
+    const vector = latLngToPoint(item.geo.lat, item.geo.lng);
+    const projected = projectGlobePoint(vector, centerX, centerY, radius, options);
+    if (!projected.visible) continue;
+    const selected = item.memory.id === options.selectedMemoryId;
+    const pulse = 1 + Math.sin(options.now / 260) * 0.16;
+    const dotRadius = (selected ? 8 : 5) * dpr * pulse;
+    ctx.fillStyle = selected ? "#d95f76" : "#fffdf8";
+    ctx.strokeStyle = selected ? "rgba(255,255,255,0.95)" : "rgba(217,95,118,0.88)";
+    ctx.lineWidth = (selected ? 4 : 2) * dpr;
+    ctx.beginPath();
+    ctx.arc(projected.x, projected.y, dotRadius, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    if (options.collectProjection) state.globe.projected.push({ ...projected, radius: dotRadius + 8 * dpr, memory: item.memory });
+  }
+}
+
+function drawProjectedPath(ctx, coords, centerX, centerY, radius, options) {
+  ctx.beginPath();
+  let hasPoint = false;
+  for (const coord of coords) {
+    const p = projectGlobePoint(latLngToPoint(coord[0], coord[1]), centerX, centerY, radius, options);
+    if (!p.visible) {
+      hasPoint = false;
+      continue;
+    }
+    if (!hasPoint) ctx.moveTo(p.x, p.y);
+    else ctx.lineTo(p.x, p.y);
+    hasPoint = true;
+  }
+}
+
+function rotateVector(point, options) {
+  const cosYaw = Math.cos(options.yaw);
+  const sinYaw = Math.sin(options.yaw);
+  const x1 = point.x * cosYaw + point.z * sinYaw;
+  const z1 = -point.x * sinYaw + point.z * cosYaw;
+  const cosPitch = Math.cos(options.pitch);
+  const sinPitch = Math.sin(options.pitch);
+  return {
+    x: x1,
+    y: point.y * cosPitch - z1 * sinPitch,
+    z: point.y * sinPitch + z1 * cosPitch,
+  };
+}
+
+function unrotateVector(point, options) {
+  const cosPitch = Math.cos(-options.pitch);
+  const sinPitch = Math.sin(-options.pitch);
+  const y1 = point.y * cosPitch - point.z * sinPitch;
+  const z1 = point.y * sinPitch + point.z * cosPitch;
+  const cosYaw = Math.cos(-options.yaw);
+  const sinYaw = Math.sin(-options.yaw);
+  return {
+    x: point.x * cosYaw + z1 * sinYaw,
+    y: y1,
+    z: -point.x * sinYaw + z1 * cosYaw,
+  };
+}
+
+function textureColor(vector) {
+  const lng = Math.atan2(vector.x, vector.z);
+  const lat = Math.asin(Math.max(-1, Math.min(1, vector.y)));
+  const u = ((lng / (Math.PI * 2)) + 0.5) % 1;
+  const v = 0.5 - lat / Math.PI;
+  const tx = Math.min(earthTexture.width - 1, Math.max(0, Math.floor(u * earthTexture.width)));
+  const ty = Math.min(earthTexture.height - 1, Math.max(0, Math.floor(v * earthTexture.height)));
+  const index = (ty * earthTexture.width + tx) * 4;
+  return [
+    earthTexture.data[index],
+    earthTexture.data[index + 1],
+    earthTexture.data[index + 2],
+  ];
+}
+
+function drawTexturedEarth(ctx, centerX, centerY, radius, options) {
+  const size = Math.max(120, Math.min(520, Math.round(radius * 2)));
+  const offscreen = document.createElement("canvas");
+  offscreen.width = size;
+  offscreen.height = size;
+  const offCtx = offscreen.getContext("2d");
+  const image = offCtx.createImageData(size, size);
+  const data = image.data;
+  const light = { x: -0.55, y: -0.42, z: 0.72 };
+
+  for (let y = 0; y < size; y += 1) {
+    const sy = (y / (size - 1)) * 2 - 1;
+    for (let x = 0; x < size; x += 1) {
+      const sx = (x / (size - 1)) * 2 - 1;
+      const dist = sx * sx + sy * sy;
+      const index = (y * size + x) * 4;
+      if (dist > 1) {
+        data[index + 3] = 0;
+        continue;
+      }
+      const z = Math.sqrt(1 - dist);
+      const world = unrotateVector({ x: sx, y: -sy, z }, options);
+      const [r, g, b] = textureColor(world);
+      const lightAmount = Math.max(0, sx * light.x + (-sy) * light.y + z * light.z);
+      const ambient = 0.34;
+      const shade = ambient + lightAmount * 0.78;
+      const edge = Math.pow(1 - z, 1.7);
+      data[index] = Math.min(255, r * shade + 18 * (1 - edge));
+      data[index + 1] = Math.min(255, g * shade + 36 * edge);
+      data[index + 2] = Math.min(255, b * shade + 54 * edge);
+      data[index + 3] = 255;
+    }
+  }
+  offCtx.putImageData(image, 0, 0);
+  ctx.drawImage(offscreen, centerX - radius, centerY - radius, radius * 2, radius * 2);
+}
+
+function drawGlobeGrid(ctx, centerX, centerY, radius, options) {
+  const dpr = window.devicePixelRatio || 1;
+  ctx.strokeStyle = "rgba(255,255,255,0.16)";
+  ctx.lineWidth = 0.8 * dpr;
+  for (let lat = -60; lat <= 60; lat += 30) {
+    const coords = [];
+    for (let lng = -180; lng <= 180; lng += 6) coords.push([lat, lng]);
+    drawProjectedPath(ctx, coords, centerX, centerY, radius, options);
+    ctx.stroke();
+  }
+  for (let lng = -150; lng <= 180; lng += 30) {
+    const coords = [];
+    for (let lat = -80; lat <= 80; lat += 4) coords.push([lat, lng]);
+    drawProjectedPath(ctx, coords, centerX, centerY, radius, options);
+    ctx.stroke();
+  }
+}
+
+function drawGlobeLand(ctx, centerX, centerY, radius, options) {
+  const continents = [
+    [[72,-168],[58,-132],[45,-120],[28,-104],[16,-92],[8,-78],[-18,-64],[-48,-70],[-55,-62],[-28,-42],[8,-36],[34,-58],[55,-76],[68,-112]],
+    [[37,-10],[58,8],[70,42],[52,80],[35,100],[8,77],[-34,42],[-30,18],[2,8],[12,-10]],
+    [[34,98],[52,126],[42,150],[16,146],[-9,119],[-6,94]],
+    [[-10,112],[-26,130],[-43,146],[-36,112]],
+    [[-70,-60],[-66,10],[-72,84],[-78,16]],
+  ];
+  ctx.fillStyle = "rgba(241, 234, 220, 0.74)";
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = (window.devicePixelRatio || 1);
+  for (const coords of continents) {
+    drawProjectedPath(ctx, coords, centerX, centerY, radius, options);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+  }
+}
+
+document.querySelectorAll(".tabs button").forEach((button) => {
+  button.addEventListener("click", () => {
+    activateView(button.dataset.view);
+  });
+});
+
+el("searchInput").addEventListener("input", loadMemories);
+el("typeFilter").addEventListener("change", loadMemories);
+el("zoomRange").addEventListener("input", updateZoom);
+el("zoomIn").addEventListener("click", () => {
+  el("zoomRange").value = Math.min(2.35, Number(el("zoomRange").value) + 0.15);
+  updateZoom();
+});
+el("zoomOut").addEventListener("click", () => {
+  el("zoomRange").value = Math.max(0.82, Number(el("zoomRange").value) - 0.15);
+  updateZoom();
+});
+
+globeCanvas.addEventListener("click", (event) => {
+  const rect = globeCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const x = (event.clientX - rect.left) * dpr;
+  const y = (event.clientY - rect.top) * dpr;
+  const hit = state.globe.projected
+    .map((point) => ({ point, distance: Math.hypot(point.x - x, point.y - y) }))
+    .filter((item) => item.distance <= item.point.radius)
+    .sort((a, b) => a.distance - b.distance)[0];
+  if (hit) focusMemory(hit.point.memory.id);
+});
+
+globeCanvas.addEventListener("pointermove", (event) => {
+  const rect = globeCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  const x = (event.clientX - rect.left) * dpr;
+  const y = (event.clientY - rect.top) * dpr;
+  const hit = state.globe.projected.some((point) => Math.hypot(point.x - x, point.y - y) <= point.radius);
+  globeCanvas.style.cursor = hit ? "pointer" : "grab";
+});
+
+window.addEventListener("resize", resizeGlobe);
+
+el("fileInput").addEventListener("change", () => {
+  const files = Array.from(el("fileInput").files || []);
+  el("fileLabel").textContent = files.length ? `${files.length} Datei(en) ausgewaehlt` : "Dateien hier ablegen oder auswaehlen";
+});
+
+el("dropzone").addEventListener("dragover", (event) => event.preventDefault());
+el("dropzone").addEventListener("drop", (event) => {
+  event.preventDefault();
+  el("fileInput").files = event.dataTransfer.files;
+  el("fileInput").dispatchEvent(new Event("change"));
+});
+
+el("memoryForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const data = new FormData(event.currentTarget);
+  const response = await fetch("/api/memories", { method: "POST", body: data });
+  if (!response.ok) {
+    alert("Die Erinnerung konnte nicht gespeichert werden.");
+    return;
+  }
+  event.currentTarget.reset();
+  el("fileLabel").textContent = "Dateien hier ablegen oder auswaehlen";
+  await loadMemories();
+});
+
+el("lightbox").addEventListener("click", (event) => {
+  if (event.target.id === "lightbox") closeLightbox();
+});
+
+connectWS();
+loadMemories();
+requestAnimationFrame(drawGlobe);
+if (location.protocol === "file:") {
+  el("fileWarning").style.display = "block";
+  el("liveText").textContent = "Server fehlt";
+}
+</script>
+</body>
+</html>

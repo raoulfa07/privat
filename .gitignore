@@ -1,0 +1,9 @@
+.DS_Store
+node_modules/
+
+# Local private memories and uploads.
+data/memories.json
+public/uploads/
+
+# Netlify local state.
+.netlify/

@@ -1,0 +1,13 @@
+[build]
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/memories"
+  to = "/.netlify/functions/memories"
+  status = 200
+
+[[redirects]]
+  from = "/events"
+  to = "/.netlify/functions/events"
+  status = 200
