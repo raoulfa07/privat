@@ -975,7 +975,7 @@
           <span id="hudSub">Ziehen zum Drehen, scrollen zum Zoomen, Pin anklicken zum Reisen.</span>
           <div class="zoom-row">
             <button class="icon-btn" id="zoomOut" type="button" aria-label="Herauszoomen">−</button>
-            <input id="zoomRange" type="range" min="2.25" max="10.5" value="6.2" step="0.1" aria-label="Zoom">
+            <input id="zoomRange" type="range" min="2.08" max="10.5" value="6.2" step="0.02" aria-label="Zoom">
             <button class="icon-btn" id="zoomIn" type="button" aria-label="Hineinzoomen">+</button>
           </div>
         </div>
@@ -1065,6 +1065,12 @@
 <script type="module">
 import * as THREE from "./assets/three.module.js";
 
+const MIN_GLOBE_ZOOM = 2.08;
+const MAX_GLOBE_ZOOM = 10.5;
+const DEFAULT_GLOBE_ZOOM = 6.2;
+const MEMORY_GLOBE_ZOOM = 2.16;
+const APPROXIMATE_GLOBE_ZOOM = 4.2;
+
 const state = {
   memories: [],
   filtered: [],
@@ -1073,8 +1079,8 @@ const state = {
   isDragging: false,
   downPointer: null,
   lastPointer: null,
-  targetDistance: 6.2,
-  cameraDistance: 6.2,
+  targetDistance: DEFAULT_GLOBE_ZOOM,
+  cameraDistance: DEFAULT_GLOBE_ZOOM,
   targetQuaternion: new THREE.Quaternion(),
   globeQuaternion: new THREE.Quaternion(),
   autoRotate: true,
@@ -1222,7 +1228,7 @@ renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.005, 100);
 const globeGroup = new THREE.Group();
 scene.add(globeGroup);
 
@@ -1232,11 +1238,20 @@ sun.position.set(-4, 3, 5);
 scene.add(sun);
 
 const loader = new THREE.TextureLoader();
-const earthTexture = loader.load("/assets/earth-day.jpg");
-earthTexture.colorSpace = THREE.SRGBColorSpace;
+const maxTextureAnisotropy = renderer.capabilities.getMaxAnisotropy();
+function tuneEarthTexture(texture) {
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.anisotropy = maxTextureAnisotropy;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = true;
+  texture.needsUpdate = true;
+  return texture;
+}
+const earthTexture = tuneEarthTexture(loader.load("/assets/earth-day.jpg"));
 
 const earth = new THREE.Mesh(
-  new THREE.SphereGeometry(2, 96, 96),
+  new THREE.SphereGeometry(2, 128, 128),
   new THREE.MeshStandardMaterial({
     map: earthTexture,
     roughness: 0.82,
@@ -1246,7 +1261,7 @@ const earth = new THREE.Mesh(
 globeGroup.add(earth);
 
 const atmosphere = new THREE.Mesh(
-  new THREE.SphereGeometry(2.035, 96, 96),
+  new THREE.SphereGeometry(2.035, 128, 128),
   new THREE.MeshBasicMaterial({
     color: 0x83dff2,
     transparent: true,
@@ -1518,7 +1533,7 @@ function goToMemory(id, options = {}) {
   state.tourIndex = Math.max(0, state.filtered.findIndex((item) => item.id === id));
   const geo = memoryGeo(memory);
   state.targetQuaternion.copy(globeQuaternionFor(geo.lat, geo.lng));
-  state.targetDistance = geo.approximate ? 4.2 : 2.65;
+  state.targetDistance = geo.approximate ? APPROXIMATE_GLOBE_ZOOM : MEMORY_GLOBE_ZOOM;
   state.autoRotate = false;
   el("zoomRange").value = state.targetDistance;
   renderPins();
@@ -1582,7 +1597,7 @@ function resetWorld() {
   state.selectedId = null;
   state.tourIndex = -1;
   state.autoRotate = true;
-  state.targetDistance = 6.2;
+  state.targetDistance = DEFAULT_GLOBE_ZOOM;
   state.targetQuaternion.identity();
   el("zoomRange").value = state.targetDistance;
   renderPins();
@@ -1643,8 +1658,9 @@ canvas.addEventListener("pointermove", (event) => {
   const dx = event.clientX - state.lastPointer.x;
   const dy = event.clientY - state.lastPointer.y;
   state.lastPointer = { x: event.clientX, y: event.clientY };
-  const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * 0.006);
-  const pitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy * 0.004);
+  const dragScale = THREE.MathUtils.clamp((state.cameraDistance - MIN_GLOBE_ZOOM) / 3.2, 0.18, 1);
+  const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * 0.006 * dragScale);
+  const pitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy * 0.0045 * dragScale);
   state.targetQuaternion.premultiply(yaw).premultiply(pitch).normalize();
 });
 
@@ -1660,20 +1676,22 @@ canvas.addEventListener("pointerup", (event) => {
 canvas.addEventListener("wheel", (event) => {
   event.preventDefault();
   state.autoRotate = false;
-  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance + event.deltaY * 0.006, 2.25, 10.5);
+  const zoomFactor = Math.exp(event.deltaY * 0.0014);
+  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance * zoomFactor, MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
   el("zoomRange").value = state.targetDistance;
 }, { passive: false });
 
 function animate() {
   requestAnimationFrame(animate);
   resizeRenderer();
-  if (state.autoRotate) {
-    const spin = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.002);
+  const spinScale = THREE.MathUtils.clamp((state.cameraDistance - 2.45) / 3.5, 0, 1);
+  if (state.autoRotate && spinScale > 0.001) {
+    const spin = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.002 * spinScale);
     state.targetQuaternion.premultiply(spin);
   }
-  state.globeQuaternion.slerp(state.targetQuaternion, 0.075);
+  state.globeQuaternion.slerp(state.targetQuaternion, 0.085);
   globeGroup.quaternion.copy(state.globeQuaternion);
-  state.cameraDistance += (state.targetDistance - state.cameraDistance) * 0.08;
+  state.cameraDistance += (state.targetDistance - state.cameraDistance) * 0.12;
   camera.position.set(0, 0, state.cameraDistance);
   camera.lookAt(0, 0, 0);
   stars.rotation.y += 0.0002;
@@ -1970,14 +1988,16 @@ el("aiForm").addEventListener("submit", (event) => {
 });
 el("zoomRange").addEventListener("input", (event) => {
   state.autoRotate = false;
-  state.targetDistance = Number(event.target.value);
+  state.targetDistance = THREE.MathUtils.clamp(Number(event.target.value), MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
 });
 el("zoomIn").addEventListener("click", () => {
-  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance - 0.45, 2.25, 10.5);
+  state.autoRotate = false;
+  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance * 0.86, MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
   el("zoomRange").value = state.targetDistance;
 });
 el("zoomOut").addEventListener("click", () => {
-  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance + 0.45, 2.25, 10.5);
+  state.autoRotate = false;
+  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance * 1.16, MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
   el("zoomRange").value = state.targetDistance;
 });
 
