@@ -253,11 +253,16 @@ async function buildMemory(fields, files) {
   const now = new Date().toISOString();
   const memoryFiles = files.filter((file) => file.fieldName !== "previews");
   const previewFiles = files.filter((file) => file.fieldName === "previews");
-  let previewIndex = 0;
-  memoryFiles.forEach((file) => {
+  const previewByIndex = new Map();
+  previewFiles.forEach((preview) => {
+    const match = String(preview.name || "").match(/^preview-(\d+)-/);
+    if (match) previewByIndex.set(Number(match[1]), preview);
+  });
+  let sequentialPreviewIndex = 0;
+  memoryFiles.forEach((file, index) => {
     if (!isImageFile(file) || file.previewUrl) return;
-    const preview = previewFiles[previewIndex];
-    previewIndex += 1;
+    const preview = previewByIndex.get(index) || previewFiles[sequentialPreviewIndex];
+    sequentialPreviewIndex += 1;
     if (preview) file.previewUrl = preview.url;
   });
 
@@ -512,8 +517,9 @@ const server = http.createServer(async (req, res) => {
     }
 
     const memoryDeleteMatch = url.pathname.match(/^\/api\/memories\/([^/]+)$/);
-    if (memoryDeleteMatch && req.method === "DELETE") {
-      const memory = deleteMemory(decodeURIComponent(memoryDeleteMatch[1]));
+    if ((memoryDeleteMatch || url.searchParams.get("id")) && req.method === "DELETE") {
+      const id = decodeURIComponent(memoryDeleteMatch?.[1] || url.searchParams.get("id"));
+      const memory = deleteMemory(id);
       if (!memory) return sendJson(res, 404, { error: "Erinnerung nicht gefunden" });
       return sendJson(res, 200, { ok: true, id: memory.id });
     }

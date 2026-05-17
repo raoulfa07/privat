@@ -232,10 +232,19 @@ async function filesFromForm(form) {
     previews.push(await storeFormFile(filesStore, file));
   }
 
-  previews.forEach((preview, index) => {
-    if (!files[index]) return;
-    files[index].previewUrl = preview.url;
-    files[index].previewKey = preview.key;
+  const previewByIndex = new Map();
+  previews.forEach((preview) => {
+    const match = String(preview.name || "").match(/^preview-(\d+)-/);
+    if (match) previewByIndex.set(Number(match[1]), preview);
+  });
+
+  let sequentialPreviewIndex = 0;
+  files.forEach((file, index) => {
+    const preview = previewByIndex.get(index) || previews[sequentialPreviewIndex];
+    sequentialPreviewIndex += 1;
+    if (!preview) return;
+    file.previewUrl = preview.url;
+    file.previewKey = preview.key;
   });
 
   return files;
@@ -311,9 +320,11 @@ export default async (request) => {
     return json(filterMemories(await readMemories(), url));
   }
 
-  const memoryDeleteMatch = url.pathname.match(/\/memories\/([^/]+)$/);
-  if (request.method === "DELETE" && memoryDeleteMatch) {
-    const memory = await deleteMemory(decodeURIComponent(memoryDeleteMatch[1]));
+  const pathParts = url.pathname.split("/").filter(Boolean);
+  const pathId = pathParts[pathParts.length - 1];
+  const deleteId = url.searchParams.get("id") || (pathId && pathId !== "memories" ? pathId : "");
+  if (request.method === "DELETE" && deleteId) {
+    const memory = await deleteMemory(decodeURIComponent(deleteId));
     if (!memory) return json({ error: "Erinnerung nicht gefunden" }, 404);
     return json({ ok: true, id: memory.id });
   }

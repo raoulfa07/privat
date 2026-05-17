@@ -608,6 +608,24 @@
     background: var(--white);
   }
 
+  .toast {
+    position: fixed;
+    right: 22px;
+    bottom: 22px;
+    z-index: 80;
+    display: none;
+    max-width: min(360px, calc(100vw - 44px));
+    padding: 12px 14px;
+    border-radius: var(--radius);
+    color: white;
+    background: rgba(16, 21, 27, 0.92);
+    box-shadow: var(--shadow);
+    line-height: 1.35;
+  }
+
+  .toast.active { display: block; }
+  .toast.error { background: #8d3344; }
+
   @media (max-width: 920px) {
     .app { grid-template-columns: 1fr; }
     .sidebar { position: relative; height: auto; order: 2; }
@@ -699,6 +717,8 @@
   </main>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
 <div class="upload-modal" id="uploadModal">
   <div class="upload-panel">
     <div class="upload-head">
@@ -777,6 +797,7 @@ const state = {
   autoRotate: true,
   aiBusy: false,
   uploadPreviewUrls: [],
+  toastTimer: 0,
   pins: [],
   raycaster: new THREE.Raycaster(),
   pointer: new THREE.Vector2(),
@@ -787,13 +808,14 @@ const isImage = (file) => file?.mime?.startsWith("image/") || [".heic", ".heif"]
 const canDisplayOriginal = (file) => {
   const name = String(file?.name || "").toLowerCase();
   const mime = String(file?.mime || "").toLowerCase();
-  return mime.startsWith("image/") && !["image/heic", "image/heif"].includes(mime) && !name.endsWith(".heic") && !name.endsWith(".heif");
+  const browserImageExt = [".jpg", ".jpeg", ".png", ".webp", ".gif"].some((ext) => name.endsWith(ext));
+  return (mime.startsWith("image/") || browserImageExt) && !["image/heic", "image/heif"].includes(mime) && !name.endsWith(".heic") && !name.endsWith(".heif");
 };
 const imageFile = (memory) => {
   const images = (memory.files || []).filter(isImage);
   return images.find((file) => file.previewUrl) || images.find(canDisplayOriginal) || images[0];
 };
-const imageUrl = (file) => file ? (file.previewUrl || (canDisplayOriginal(file) ? file.url : "")) : "";
+const imageUrl = (file) => file ? (file.previewUrl || file.url || "") : "";
 const fmtDate = (date) => date ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(`${date}T12:00:00`)) : "ohne Datum";
 
 const knownPlaces = {
@@ -814,6 +836,15 @@ function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[char]));
+}
+
+function showToast(message, type = "ok") {
+  const toast = el("toast");
+  toast.textContent = message;
+  toast.classList.toggle("error", type === "error");
+  toast.classList.add("active");
+  window.clearTimeout(state.toastTimer);
+  state.toastTimer = window.setTimeout(() => toast.classList.remove("active"), 3600);
 }
 
 function imageMarkup(file, className, alt) {
@@ -1193,17 +1224,24 @@ async function deleteMemory(id) {
   const confirmed = confirm(`Soll "${memory.title || "diese Erinnerung"}" wirklich geloescht werden?`);
   if (!confirmed) return;
 
-  const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: "DELETE" });
+  let response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!response.ok && response.status === 404) {
+    response = await fetch(`/api/memories?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
   if (!response.ok) {
-    alert(`Die Erinnerung konnte nicht geloescht werden.\n${await response.text()}`);
+    showToast("Die Erinnerung konnte nicht geloescht werden.", "error");
     return;
   }
 
   closeStation();
   state.selectedId = null;
   state.tourIndex = -1;
-  await loadMemories();
+  state.memories = state.memories.filter((item) => item.id !== id);
+  state.filtered = state.filtered.filter((item) => item.id !== id);
+  render();
   resetWorld();
+  await loadMemories();
+  showToast("Erinnerung geloescht.");
 }
 
 function pointerToNdc(event) {
@@ -1274,7 +1312,7 @@ function fieldValue(form, name) {
   return form.querySelector(`[name="${name}"]`)?.value || "";
 }
 
-async function imagePreviewFile(file) {
+async function imagePreviewFile(file, index = 0) {
   if (!file.type.startsWith("image/") || file.type === "image/gif") return null;
   const image = new Image();
   const objectUrl = URL.createObjectURL(file);
@@ -1294,7 +1332,7 @@ async function imagePreviewFile(file) {
     previewCanvas.getContext("2d").drawImage(image, 0, 0, width, height);
     const blob = await new Promise((resolve) => previewCanvas.toBlob(resolve, "image/jpeg", 0.88));
     if (!blob) return null;
-    return new File([blob], `${file.name.replace(/\.[^.]+$/, "") || "bild"}-preview.jpg`, { type: "image/jpeg" });
+    return new File([blob], `preview-${index}-${file.name.replace(/\.[^.]+$/, "") || "bild"}.jpg`, { type: "image/jpeg" });
   } catch {
     return null;
   } finally {
@@ -1500,8 +1538,8 @@ async function uploadFormData(form) {
   const data = new FormData();
   ["title", "date", "type", "place", "lat", "lng", "tags", "note"].forEach((name) => data.append(name, fieldValue(form, name)));
   const files = Array.from(el("fileInput").files || []);
-  for (const file of files) {
-    const preview = await imagePreviewFile(file);
+  for (const [index, file] of files.entries()) {
+    const preview = await imagePreviewFile(file, index);
     data.append("files", file);
     if (preview) data.append("previews", preview);
   }
@@ -1551,19 +1589,27 @@ el("dropzone").addEventListener("drop", (event) => {
 });
 el("memoryForm").addEventListener("submit", async (event) => {
   event.preventDefault();
-  const data = await uploadFormData(event.currentTarget);
-  const response = await fetch("/api/memories", { method: "POST", body: data });
-  if (!response.ok) {
-    alert(`Die Erinnerung konnte nicht gespeichert werden.\n${await response.text()}`);
-    return;
+  const saveButton = el("wizardSave");
+  saveButton.disabled = true;
+  saveButton.textContent = "Speichert...";
+  try {
+    const data = await uploadFormData(event.currentTarget);
+    const response = await fetch("/api/memories", { method: "POST", body: data });
+    if (!response.ok) throw new Error(await response.text());
+    const memory = await response.json().catch(() => null);
+    event.currentTarget.reset();
+    el("fileLabel").textContent = "Dateien hier ablegen oder auswaehlen";
+    clearUploadPreviews();
+    closeUploadModal();
+    await loadMemories();
+    if (memory?.id) goToMemory(memory.id, { openStation: true });
+    showToast("Erinnerung gespeichert.");
+  } catch {
+    showToast("Die Erinnerung konnte nicht gespeichert werden.", "error");
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = "Erinnerung speichern";
   }
-  const memory = await response.json().catch(() => null);
-  event.currentTarget.reset();
-  el("fileLabel").textContent = "Dateien hier ablegen oder auswaehlen";
-  clearUploadPreviews();
-  closeUploadModal();
-  await loadMemories();
-  if (memory?.id) goToMemory(memory.id, { openStation: true });
 });
 
 setView("world");
