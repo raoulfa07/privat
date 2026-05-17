@@ -180,6 +180,82 @@
   .dropzone strong { display: block; color: var(--ink); margin-bottom: 5px; }
   .dropzone input { display: none; }
 
+  .upload-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: none;
+    place-items: center;
+    padding: 22px;
+    background: rgba(16, 21, 27, 0.62);
+  }
+
+  .upload-modal.active { display: grid; }
+
+  .upload-panel {
+    width: min(820px, 100%);
+    max-height: min(88vh, 860px);
+    overflow: auto;
+    border-radius: var(--radius);
+    background: var(--white);
+    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
+  }
+
+  .upload-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .upload-head h2 { margin: 0 0 4px; font-size: 24px; }
+  .upload-head p { margin: 0; color: var(--muted); }
+
+  .wizard-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    padding: 16px 24px 0;
+  }
+
+  .wizard-step {
+    padding: 8px 10px;
+    border-radius: 999px;
+    color: var(--muted);
+    background: var(--soft);
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .wizard-step.active {
+    color: white;
+    background: var(--aqua);
+  }
+
+  .wizard-page { display: none; padding: 20px 24px 24px; }
+  .wizard-page.active { display: grid; gap: 12px; }
+
+  .geo-status {
+    display: none;
+    padding: 11px 12px;
+    border-radius: var(--radius);
+    color: #31564a;
+    background: rgba(96, 120, 72, 0.14);
+    line-height: 1.35;
+  }
+
+  .geo-status.active { display: block; }
+
+  .wizard-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 16px 24px 24px;
+    border-top: 1px solid var(--line);
+  }
+
   .main { min-width: 0; padding: 28px; }
 
   .stage {
@@ -410,33 +486,8 @@
     <div class="tour-controls">
       <button class="primary" id="startTour" type="button">Rundgang starten</button>
       <button class="secondary" id="resetWorld" type="button">Zur Weltkugel</button>
+      <button class="secondary" id="openUpload" type="button">Erinnerung hinzufügen</button>
     </div>
-
-    <form class="memory-form" id="memoryForm">
-      <h2>Neue Erinnerung</h2>
-      <input name="title" placeholder="Titel">
-      <div class="form-grid">
-        <input name="date" type="date">
-        <select name="type">
-          <option value="photo">Bild</option>
-          <option value="chat">Chat</option>
-          <option value="note">Notiz</option>
-          <option value="place">Ort</option>
-        </select>
-      </div>
-      <input name="place" placeholder="Ort, z. B. Münster">
-      <div class="form-grid">
-        <input name="lat" inputmode="decimal" placeholder="Breite">
-        <input name="lng" inputmode="decimal" placeholder="Laenge">
-      </div>
-      <input name="tags" placeholder="Tags, durch Komma getrennt">
-      <textarea name="note" rows="4" placeholder="Was soll hier nicht verloren gehen?"></textarea>
-      <label class="dropzone" id="dropzone">
-        <input id="fileInput" name="files" type="file" multiple accept="image/*,.heic,.heif,.pdf,.txt">
-        <span><strong>Bilder oder Screenshots hochladen</strong><span id="fileLabel">Dateien hier ablegen oder auswaehlen</span></span>
-      </label>
-      <button class="primary" type="submit">Erinnerung speichern</button>
-    </form>
   </aside>
 
   <main class="main">
@@ -471,6 +522,64 @@
       <div class="timeline" id="timeline"></div>
     </section>
   </main>
+</div>
+
+<div class="upload-modal" id="uploadModal">
+  <div class="upload-panel">
+    <div class="upload-head">
+      <div>
+        <h2>Neue Erinnerung</h2>
+        <p>Ich führe dich durch Upload, Metadaten und Einordnung.</p>
+      </div>
+      <button class="secondary" id="closeUpload" type="button">Schliessen</button>
+    </div>
+
+    <div class="wizard-steps">
+      <div class="wizard-step active" data-step-label="1">1 · Dateien</div>
+      <div class="wizard-step" data-step-label="2">2 · Daten</div>
+      <div class="wizard-step" data-step-label="3">3 · Speichern</div>
+    </div>
+
+    <form class="memory-form" id="memoryForm">
+      <section class="wizard-page active" data-step="1">
+        <label class="dropzone" id="dropzone">
+          <input id="fileInput" name="files" type="file" multiple accept="image/*,.heic,.heif,.pdf,.txt">
+          <span><strong>Bilder oder Screenshots hochladen</strong><span id="fileLabel">Dateien hier ablegen oder auswaehlen</span></span>
+        </label>
+        <div class="geo-status" id="geoStatus"></div>
+      </section>
+
+      <section class="wizard-page" data-step="2">
+        <input name="title" placeholder="Titel">
+        <div class="form-grid">
+          <input name="date" type="date">
+          <select name="type">
+            <option value="photo">Bild</option>
+            <option value="chat">Chat</option>
+            <option value="note">Notiz</option>
+            <option value="place">Ort</option>
+          </select>
+        </div>
+        <input name="place" placeholder="Ort, z. B. Münster">
+        <div class="form-grid">
+          <input name="lat" inputmode="decimal" placeholder="Breite">
+          <input name="lng" inputmode="decimal" placeholder="Laenge">
+        </div>
+        <input name="tags" placeholder="Tags, durch Komma getrennt">
+        <textarea name="note" rows="4" placeholder="Was soll hier nicht verloren gehen?"></textarea>
+      </section>
+
+      <section class="wizard-page" data-step="3">
+        <div class="geo-status active" id="reviewStatus">Prüfe kurz Ort, Datum und Notiz. Danach landet die Erinnerung direkt im Rundgang.</div>
+      </section>
+
+      <div class="wizard-actions">
+        <button class="secondary" id="wizardBack" type="button">Zurück</button>
+        <button class="secondary" id="wizardNext" type="button">Weiter</button>
+        <button class="primary" id="wizardSave" type="submit">Erinnerung speichern</button>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script type="module">
@@ -598,7 +707,13 @@ scene.add(stars);
 
 function resizeRenderer() {
   const rect = canvas.getBoundingClientRect();
-  renderer.setSize(rect.width, rect.height, false);
+  const width = Math.max(1, Math.floor(rect.width));
+  const height = Math.max(1, Math.floor(rect.height));
+  const targetWidth = Math.floor(width * renderer.getPixelRatio());
+  const targetHeight = Math.floor(height * renderer.getPixelRatio());
+  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+    renderer.setSize(width, height, false);
+  }
   camera.aspect = rect.width / rect.height;
   camera.updateProjectionMatrix();
 }
@@ -907,6 +1022,166 @@ async function imagePreviewFile(file) {
   }
 }
 
+function readAscii(view, offset, length) {
+  let text = "";
+  for (let i = 0; i < length; i += 1) text += String.fromCharCode(view.getUint8(offset + i));
+  return text.replace(/\0+$/, "");
+}
+
+function parseExifDate(value) {
+  const match = String(value || "").match(/(\d{4}):(\d{2}):(\d{2})/);
+  return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
+}
+
+function exifRational(view, offset, little) {
+  const numerator = view.getUint32(offset, little);
+  const denominator = view.getUint32(offset + 4, little) || 1;
+  return numerator / denominator;
+}
+
+function exifValueOffset(view, tiffStart, valueOffset, type, count, little) {
+  const byteSize = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 10: 8 }[type] || 1;
+  return count * byteSize <= 4 ? valueOffset : tiffStart + view.getUint32(valueOffset, little);
+}
+
+function readExifString(view, tiffStart, valueOffset, type, count, little) {
+  const offset = exifValueOffset(view, tiffStart, valueOffset, type, count, little);
+  return readAscii(view, offset, count);
+}
+
+function readGpsCoord(view, tiffStart, valueOffset, little) {
+  const offset = tiffStart + view.getUint32(valueOffset, little);
+  const degrees = exifRational(view, offset, little);
+  const minutes = exifRational(view, offset + 8, little);
+  const seconds = exifRational(view, offset + 16, little);
+  return degrees + minutes / 60 + seconds / 3600;
+}
+
+function parseGpsIfd(view, tiffStart, ifdOffset, little) {
+  const gps = {};
+  const entries = view.getUint16(tiffStart + ifdOffset, little);
+  for (let i = 0; i < entries; i += 1) {
+    const entry = tiffStart + ifdOffset + 2 + i * 12;
+    const tag = view.getUint16(entry, little);
+    const type = view.getUint16(entry + 2, little);
+    const count = view.getUint32(entry + 4, little);
+    const valueOffset = entry + 8;
+    if (tag === 1) gps.latRef = readExifString(view, tiffStart, valueOffset, type, count, little);
+    if (tag === 2) gps.lat = readGpsCoord(view, tiffStart, valueOffset, little);
+    if (tag === 3) gps.lngRef = readExifString(view, tiffStart, valueOffset, type, count, little);
+    if (tag === 4) gps.lng = readGpsCoord(view, tiffStart, valueOffset, little);
+  }
+  if (Number.isFinite(gps.lat) && Number.isFinite(gps.lng)) {
+    return {
+      lat: gps.latRef === "S" ? -gps.lat : gps.lat,
+      lng: gps.lngRef === "W" ? -gps.lng : gps.lng,
+    };
+  }
+  return {};
+}
+
+function parseExifSegment(view, start, length) {
+  if (readAscii(view, start, 6) !== "Exif") return {};
+  const tiffStart = start + 6;
+  const little = readAscii(view, tiffStart, 2) === "II";
+  const firstIfd = view.getUint32(tiffStart + 4, little);
+  const entries = view.getUint16(tiffStart + firstIfd, little);
+  const metadata = {};
+  let exifIfd = 0;
+  let gpsIfd = 0;
+
+  for (let i = 0; i < entries; i += 1) {
+    const entry = tiffStart + firstIfd + 2 + i * 12;
+    const tag = view.getUint16(entry, little);
+    if (tag === 0x8769) exifIfd = view.getUint32(entry + 8, little);
+    if (tag === 0x8825) gpsIfd = view.getUint32(entry + 8, little);
+  }
+
+  if (exifIfd) {
+    const exifEntries = view.getUint16(tiffStart + exifIfd, little);
+    for (let i = 0; i < exifEntries; i += 1) {
+      const entry = tiffStart + exifIfd + 2 + i * 12;
+      const tag = view.getUint16(entry, little);
+      const type = view.getUint16(entry + 2, little);
+      const count = view.getUint32(entry + 4, little);
+      if (tag === 0x9003 || tag === 0x0132) {
+        metadata.date = parseExifDate(readExifString(view, tiffStart, entry + 8, type, count, little));
+      }
+    }
+  }
+
+  if (gpsIfd) Object.assign(metadata, parseGpsIfd(view, tiffStart, gpsIfd, little));
+  return metadata;
+}
+
+async function extractImageMetadata(file) {
+  if (!/jpe?g$/i.test(file.name) && !["image/jpeg", "image/jpg"].includes(file.type)) return {};
+  const buffer = await file.arrayBuffer();
+  const view = new DataView(buffer);
+  if (view.getUint16(0) !== 0xffd8) return {};
+  let offset = 2;
+  while (offset < view.byteLength) {
+    if (view.getUint8(offset) !== 0xff) break;
+    const marker = view.getUint8(offset + 1);
+    const length = view.getUint16(offset + 2);
+    if (marker === 0xe1) return parseExifSegment(view, offset + 4, length - 2);
+    offset += 2 + length;
+  }
+  return {};
+}
+
+function setUploadStep(step) {
+  document.querySelectorAll(".wizard-step").forEach((item, index) => item.classList.toggle("active", index + 1 === step));
+  document.querySelectorAll(".wizard-page").forEach((page) => page.classList.toggle("active", Number(page.dataset.step) === step));
+  el("wizardBack").style.visibility = step === 1 ? "hidden" : "visible";
+  el("wizardNext").style.display = step === 3 ? "none" : "";
+  el("wizardSave").style.display = step === 3 ? "" : "none";
+  el("uploadModal").dataset.step = String(step);
+}
+
+function openUploadModal() {
+  el("uploadModal").classList.add("active");
+  setUploadStep(1);
+}
+
+function closeUploadModal() {
+  el("uploadModal").classList.remove("active");
+}
+
+function uploadStep() {
+  return Number(el("uploadModal").dataset.step || "1");
+}
+
+async function analyzeSelectedFiles() {
+  const files = Array.from(el("fileInput").files || []);
+  el("fileLabel").textContent = files.length ? `${files.length} Datei(en) ausgewaehlt` : "Dateien hier ablegen oder auswaehlen";
+  el("geoStatus").classList.remove("active");
+  el("geoStatus").textContent = "";
+  if (!files.length) return;
+
+  const metadata = await extractImageMetadata(files[0]);
+  const messages = [];
+  const form = el("memoryForm");
+  if (metadata.date && !fieldValue(form, "date")) {
+    form.querySelector('[name="date"]').value = metadata.date;
+    messages.push(`Datum erkannt: ${metadata.date}`);
+  }
+  if (Number.isFinite(metadata.lat) && Number.isFinite(metadata.lng)) {
+    form.querySelector('[name="lat"]').value = metadata.lat.toFixed(6);
+    form.querySelector('[name="lng"]').value = metadata.lng.toFixed(6);
+    messages.push(`GPS erkannt: ${metadata.lat.toFixed(5)}, ${metadata.lng.toFixed(5)}`);
+  }
+  if (!fieldValue(form, "title")) form.querySelector('[name="title"]').value = files[0].name.replace(/\.[^.]+$/, "");
+  if (messages.length) {
+    el("geoStatus").textContent = messages.join(" · ");
+    el("geoStatus").classList.add("active");
+  } else {
+    el("geoStatus").textContent = "Keine GPS-Daten im Bild gefunden. Du kannst im nächsten Schritt einen Ort eintragen.";
+    el("geoStatus").classList.add("active");
+  }
+  setUploadStep(2);
+}
+
 async function uploadFormData(form) {
   const data = new FormData();
   ["title", "date", "type", "place", "lat", "lng", "tags", "note"].forEach((name) => data.append(name, fieldValue(form, name)));
@@ -925,6 +1200,12 @@ document.querySelectorAll(".tabs button").forEach((button) => {
 
 el("startTour").addEventListener("click", startTour);
 el("resetWorld").addEventListener("click", resetWorld);
+el("openUpload").addEventListener("click", openUploadModal);
+el("closeUpload").addEventListener("click", closeUploadModal);
+el("wizardBack").addEventListener("click", () => setUploadStep(Math.max(1, uploadStep() - 1)));
+el("wizardNext").addEventListener("click", () => setUploadStep(Math.min(3, uploadStep() + 1)));
+el("wizardSave").style.display = "none";
+el("wizardBack").style.visibility = "hidden";
 el("searchInput").addEventListener("input", loadMemories);
 el("typeFilter").addEventListener("change", loadMemories);
 el("zoomRange").addEventListener("input", (event) => {
@@ -941,14 +1222,13 @@ el("zoomOut").addEventListener("click", () => {
 });
 
 el("fileInput").addEventListener("change", () => {
-  const files = Array.from(el("fileInput").files || []);
-  el("fileLabel").textContent = files.length ? `${files.length} Datei(en) ausgewaehlt` : "Dateien hier ablegen oder auswaehlen";
+  analyzeSelectedFiles();
 });
 el("dropzone").addEventListener("dragover", (event) => event.preventDefault());
 el("dropzone").addEventListener("drop", (event) => {
   event.preventDefault();
   el("fileInput").files = event.dataTransfer.files;
-  el("fileInput").dispatchEvent(new Event("change"));
+  analyzeSelectedFiles();
 });
 el("memoryForm").addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -961,6 +1241,7 @@ el("memoryForm").addEventListener("submit", async (event) => {
   const memory = await response.json().catch(() => null);
   event.currentTarget.reset();
   el("fileLabel").textContent = "Dateien hier ablegen oder auswaehlen";
+  closeUploadModal();
   await loadMemories();
   if (memory?.id) goToMemory(memory.id, { openStation: true });
 });
