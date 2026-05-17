@@ -233,6 +233,7 @@ function parseMultipart(buffer, contentType) {
       const previewUrl = isImageFile({ name: filename, mime }) ? createLocalPreview(filePath, storedName) : "";
       files.push({
         id: `file-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+        fieldName: name,
         name: filename,
         url: `/uploads/${storedName}`,
         previewUrl,
@@ -250,7 +251,17 @@ function parseMultipart(buffer, contentType) {
 
 async function buildMemory(fields, files) {
   const now = new Date().toISOString();
-  const primaryImage = files.find(isImageFile);
+  const memoryFiles = files.filter((file) => file.fieldName !== "previews");
+  const previewFiles = files.filter((file) => file.fieldName === "previews");
+  let previewIndex = 0;
+  memoryFiles.forEach((file) => {
+    if (!isImageFile(file) || file.previewUrl) return;
+    const preview = previewFiles[previewIndex];
+    previewIndex += 1;
+    if (preview) file.previewUrl = preview.url;
+  });
+
+  const primaryImage = memoryFiles.find(isImageFile);
   const imageMetadata = primaryImage?.metadata || {};
   const geocoded = (!fields.lat || !fields.lng) ? await geocodePlace(fields.place) : null;
   const date = fields.date || imageMetadata.date || now.slice(0, 10);
@@ -265,10 +276,10 @@ async function buildMemory(fields, files) {
     place,
     lat,
     lng,
-    type: fields.type || (files.some(isImageFile) ? "photo" : "note"),
+    type: fields.type || (memoryFiles.some(isImageFile) ? "photo" : "note"),
     note: fields.note || "",
     tags: Array.from(new Set([...normalizeTags(fields.tags), ...(primaryImage ? ["foto"] : [])])),
-    files,
+    files: memoryFiles.map(({ fieldName, ...file }) => file),
     metadata: {
       source: primaryImage ? "image" : "manual",
       takenAt: imageMetadata.takenAt || "",
@@ -282,6 +293,28 @@ async function buildMemory(fields, files) {
     createdAt: now,
     updatedAt: now,
   };
+}
+
+function deleteLocalUpload(fileUrl) {
+  if (!fileUrl || !String(fileUrl).startsWith("/uploads/")) return;
+  const relativePath = decodeURIComponent(String(fileUrl).replace(/^\/+/, ""));
+  const filePath = path.normalize(path.join(publicDir, relativePath));
+  if (!filePath.startsWith(uploadDir)) return;
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
+function deleteMemory(id) {
+  const memories = readMemories();
+  const memory = memories.find((item) => item.id === id);
+  if (!memory) return null;
+  const remaining = memories.filter((item) => item.id !== id);
+  for (const file of memory.files || []) {
+    deleteLocalUpload(file.url);
+    deleteLocalUpload(file.previewUrl);
+  }
+  writeMemories(remaining);
+  broadcast("memoriesUpdated", remaining);
+  return memory;
 }
 
 function getFilteredMemories(url) {
@@ -476,6 +509,13 @@ const server = http.createServer(async (req, res) => {
       writeMemories(memories);
       broadcast("memoriesUpdated", memories);
       return sendJson(res, 201, memory);
+    }
+
+    const memoryDeleteMatch = url.pathname.match(/^\/api\/memories\/([^/]+)$/);
+    if (memoryDeleteMatch && req.method === "DELETE") {
+      const memory = deleteMemory(decodeURIComponent(memoryDeleteMatch[1]));
+      if (!memory) return sendJson(res, 404, { error: "Erinnerung nicht gefunden" });
+      return sendJson(res, 200, { ok: true, id: memory.id });
     }
 
     if (url.pathname === "/api/ai-search" && req.method === "POST") {

@@ -278,6 +278,47 @@
   .dropzone strong { display: block; color: var(--ink); margin-bottom: 5px; }
   .dropzone input { display: none; }
 
+  .selected-previews {
+    display: none;
+    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
+    gap: 10px;
+    padding: 0 24px 18px;
+  }
+
+  .selected-previews.active { display: grid; }
+
+  .selected-preview {
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+  }
+
+  .selected-preview-media {
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    background: var(--soft);
+    color: var(--muted);
+    font-weight: 800;
+  }
+
+  .selected-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .selected-preview span {
+    display: block;
+    overflow: hidden;
+    padding: 7px;
+    color: var(--muted);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
   .upload-modal {
     position: fixed;
     inset: 0;
@@ -479,7 +520,30 @@
   .station h3 { margin: 0 0 8px; font-size: 26px; }
   .station p { color: rgba(255, 253, 248, 0.76); line-height: 1.45; }
   .station-image { width: 100%; max-height: 280px; object-fit: cover; border-radius: var(--radius); margin-bottom: 12px; }
-  .station-actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 12px; }
+  .image-missing {
+    display: grid;
+    place-items: center;
+    min-height: 130px;
+    border: 1px dashed rgba(255, 253, 248, 0.24);
+    border-radius: var(--radius);
+    color: rgba(255, 253, 248, 0.74);
+    text-align: center;
+    padding: 12px;
+  }
+  .thumb .image-missing {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    border: 0;
+    color: var(--muted);
+  }
+  .station .image-missing { margin-bottom: 12px; }
+  .station-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .danger {
+    border-color: rgba(217, 95, 118, 0.48);
+    color: #fff;
+    background: rgba(217, 95, 118, 0.22);
+  }
 
   .mini-map {
     overflow: hidden;
@@ -684,6 +748,8 @@
         <div class="geo-status active" id="reviewStatus">Prüfe kurz Ort, Datum und Notiz. Danach landet die Erinnerung direkt im Rundgang.</div>
       </section>
 
+      <div class="selected-previews" id="selectedPreviews"></div>
+
       <div class="wizard-actions">
         <button class="secondary" id="wizardBack" type="button">Zurück</button>
         <button class="secondary" id="wizardNext" type="button">Weiter</button>
@@ -710,14 +776,24 @@ const state = {
   globeQuaternion: new THREE.Quaternion(),
   autoRotate: true,
   aiBusy: false,
+  uploadPreviewUrls: [],
   pins: [],
   raycaster: new THREE.Raycaster(),
   pointer: new THREE.Vector2(),
 };
 
 const el = (id) => document.getElementById(id);
-const imageFile = (memory) => (memory.files || []).find((file) => file.mime && (file.mime.startsWith("image/") || [".heic", ".heif"].some((ext) => file.name.toLowerCase().endsWith(ext))));
-const imageUrl = (file) => file ? (file.previewUrl || file.url) : "";
+const isImage = (file) => file?.mime?.startsWith("image/") || [".heic", ".heif"].some((ext) => String(file?.name || "").toLowerCase().endsWith(ext));
+const canDisplayOriginal = (file) => {
+  const name = String(file?.name || "").toLowerCase();
+  const mime = String(file?.mime || "").toLowerCase();
+  return mime.startsWith("image/") && !["image/heic", "image/heif"].includes(mime) && !name.endsWith(".heic") && !name.endsWith(".heif");
+};
+const imageFile = (memory) => {
+  const images = (memory.files || []).filter(isImage);
+  return images.find((file) => file.previewUrl) || images.find(canDisplayOriginal) || images[0];
+};
+const imageUrl = (file) => file ? (file.previewUrl || (canDisplayOriginal(file) ? file.url : "")) : "";
 const fmtDate = (date) => date ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(`${date}T12:00:00`)) : "ohne Datum";
 
 const knownPlaces = {
@@ -738,6 +814,30 @@ function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, (char) => ({
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
   }[char]));
+}
+
+function imageMarkup(file, className, alt) {
+  const src = imageUrl(file);
+  if (!src) return `<div class="image-missing">Keine Browser-Vorschau verfuegbar</div>`;
+  const fallback = file?.previewUrl && canDisplayOriginal(file) ? file.url : "";
+  return `<img class="${className}" src="${src}" alt="${escapeHtml(alt)}" data-fallback="${escapeHtml(fallback)}">`;
+}
+
+function wireImageFallbacks(scope = document) {
+  scope.querySelectorAll("img[data-fallback]").forEach((img) => {
+    img.addEventListener("error", () => {
+      const fallback = img.dataset.fallback;
+      if (fallback && img.src !== new URL(fallback, location.href).href) {
+        img.src = fallback;
+        img.dataset.fallback = "";
+        return;
+      }
+      const missing = document.createElement("div");
+      missing.className = "image-missing";
+      missing.textContent = "Vorschau nicht verfuegbar";
+      img.replaceWith(missing);
+    }, { once: true });
+  });
 }
 
 function memoryGeo(memory) {
@@ -892,7 +992,7 @@ function renderGallery() {
     const img = imageFile(memory);
     return `
       <article class="card" data-memory="${memory.id}">
-        <div class="thumb">${img ? `<img src="${imageUrl(img)}" alt="${escapeHtml(memory.title)}">` : "Noch kein Bild"}</div>
+        <div class="thumb">${img ? imageMarkup(img, "", memory.title) : "Noch kein Bild"}</div>
         <div class="card-body">
           <h3>${escapeHtml(memory.title)}</h3>
           <div class="meta"><span>${fmtDate(memory.date)}</span><span>${escapeHtml(memory.place)}</span></div>
@@ -905,6 +1005,7 @@ function renderGallery() {
   document.querySelectorAll(".card[data-memory]").forEach((card) => {
     card.addEventListener("click", () => goToMemory(card.dataset.memory, { openStation: true }));
   });
+  wireImageFallbacks(el("memoryGrid"));
 }
 
 function renderTimeline() {
@@ -932,7 +1033,7 @@ function renderAiResults(memories) {
     const img = imageFile(memory);
     return `
       <button class="ai-result" type="button" data-memory="${memory.id}">
-        ${img ? `<img src="${imageUrl(img)}" alt="">` : `<span class="ai-result-fallback">•</span>`}
+        ${img && imageUrl(img) ? imageMarkup(img, "", memory.title) : `<span class="ai-result-fallback">•</span>`}
         <span>
           <strong>${escapeHtml(memory.title || "Erinnerung")}</strong>
           <span>${fmtDate(memory.date)} · ${escapeHtml(memory.place || "Ort offen")}</span>
@@ -943,6 +1044,7 @@ function renderAiResults(memories) {
   document.querySelectorAll(".ai-result[data-memory]").forEach((button) => {
     button.addEventListener("click", () => goToMemory(button.dataset.memory, { openStation: true }));
   });
+  wireImageFallbacks(el("aiResults"));
 }
 
 async function askAi(question) {
@@ -1027,7 +1129,7 @@ function showStation(id) {
   const img = imageFile(memory);
   const mapUrl = cityMapEmbed(memory);
   el("stationPanel").innerHTML = `
-    ${img ? `<img class="station-image" src="${imageUrl(img)}" alt="${escapeHtml(memory.title)}">` : ""}
+    ${img ? imageMarkup(img, "station-image", memory.title) : ""}
     <h3>${escapeHtml(memory.title)}</h3>
     <div class="meta">${fmtDate(memory.date)} · ${escapeHtml(memory.place || "Ort offen")}</div>
     <p>${escapeHtml(memory.note || "Ein Moment, der hier seinen Platz bekommt.")}</p>
@@ -1037,6 +1139,7 @@ function showStation(id) {
       <button class="secondary" id="prevMemory" type="button">Zurueck</button>
       <button class="primary" id="nextMemory" type="button">Weiter</button>
       <button class="secondary" id="closeStation" type="button">Welt</button>
+      <button class="secondary danger" id="deleteMemory" type="button">Loeschen</button>
     </div>
   `;
   el("stationPanel").classList.add("active");
@@ -1044,6 +1147,8 @@ function showStation(id) {
   el("prevMemory").addEventListener("click", previousMemory);
   el("nextMemory").addEventListener("click", nextMemory);
   el("closeStation").addEventListener("click", closeStation);
+  el("deleteMemory").addEventListener("click", () => deleteMemory(memory.id));
+  wireImageFallbacks(el("stationPanel"));
 }
 
 function closeStation() {
@@ -1080,6 +1185,25 @@ function resetWorld() {
   renderPins();
   updateHud();
   setView("world");
+}
+
+async function deleteMemory(id) {
+  const memory = state.memories.find((item) => item.id === id);
+  if (!memory) return;
+  const confirmed = confirm(`Soll "${memory.title || "diese Erinnerung"}" wirklich geloescht werden?`);
+  if (!confirmed) return;
+
+  const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!response.ok) {
+    alert(`Die Erinnerung konnte nicht geloescht werden.\n${await response.text()}`);
+    return;
+  }
+
+  closeStation();
+  state.selectedId = null;
+  state.tourIndex = -1;
+  await loadMemories();
+  resetWorld();
 }
 
 function pointerToNdc(event) {
@@ -1302,15 +1426,49 @@ function openUploadModal() {
 
 function closeUploadModal() {
   el("uploadModal").classList.remove("active");
+  clearUploadPreviews();
 }
 
 function uploadStep() {
   return Number(el("uploadModal").dataset.step || "1");
 }
 
+function clearUploadPreviews() {
+  state.uploadPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
+  state.uploadPreviewUrls = [];
+  el("selectedPreviews").classList.remove("active");
+  el("selectedPreviews").innerHTML = "";
+}
+
+function renderSelectedPreviews(files) {
+  clearUploadPreviews();
+  if (!files.length) return;
+  el("selectedPreviews").classList.add("active");
+  el("selectedPreviews").innerHTML = files.map((file) => {
+    const canPreview = file.type.startsWith("image/") && !["image/heic", "image/heif"].includes(file.type) && !/\.hei[cf]$/i.test(file.name);
+    if (!canPreview) {
+      return `
+        <div class="selected-preview">
+          <div class="selected-preview-media">Datei</div>
+          <span title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+        </div>
+      `;
+    }
+    const url = URL.createObjectURL(file);
+    state.uploadPreviewUrls.push(url);
+    return `
+      <div class="selected-preview">
+        <div class="selected-preview-media"><img src="${url}" alt="${escapeHtml(file.name)}"></div>
+        <span title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+      </div>
+    `;
+  }).join("");
+}
+
 async function analyzeSelectedFiles() {
   const files = Array.from(el("fileInput").files || []);
   el("fileLabel").textContent = files.length ? `${files.length} Datei(en) ausgewaehlt` : "Dateien hier ablegen oder auswaehlen";
+  renderSelectedPreviews(files);
   el("geoStatus").classList.remove("active");
   el("geoStatus").textContent = "";
   if (!files.length) return;
@@ -1344,8 +1502,8 @@ async function uploadFormData(form) {
   const files = Array.from(el("fileInput").files || []);
   for (const file of files) {
     const preview = await imagePreviewFile(file);
-    if (preview) data.append("files", preview);
     data.append("files", file);
+    if (preview) data.append("previews", preview);
   }
   return data;
 }
@@ -1402,6 +1560,7 @@ el("memoryForm").addEventListener("submit", async (event) => {
   const memory = await response.json().catch(() => null);
   event.currentTarget.reset();
   el("fileLabel").textContent = "Dateien hier ablegen oder auswaehlen";
+  clearUploadPreviews();
   closeUploadModal();
   await loadMemories();
   if (memory?.id) goToMemory(memory.id, { openStation: true });

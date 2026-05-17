@@ -162,6 +162,16 @@ async function writeMemories(memories) {
   await store.setJSON("memories", memories);
 }
 
+function fileKeyFromUrl(fileUrl) {
+  if (!fileUrl) return "";
+  try {
+    const url = new URL(fileUrl, "https://local.invalid");
+    return url.searchParams.get("key") || "";
+  } catch {
+    return "";
+  }
+}
+
 function filterMemories(memories, url) {
   const query = String(url.searchParams.get("q") || "").toLowerCase();
   const type = String(url.searchParams.get("type") || "all");
@@ -182,34 +192,75 @@ function filterMemories(memories, url) {
     .sort((a, b) => String(b.date).localeCompare(String(a.date)));
 }
 
+async function storeFormFile(filesStore, file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const mime = mimeFromFilename(file.name, file.type);
+  const key = `${Date.now()}-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
+  const metadata = isImageFile({ name: file.name, mime }) ? extractBasicImageMetadata(arrayBuffer) : {};
+
+  await filesStore.set(key, arrayBuffer, {
+    metadata: {
+      name: file.name,
+      mime,
+    },
+  });
+
+  return {
+    id: `file-${crypto.randomUUID()}`,
+    key,
+    name: file.name,
+    url: `/api/file?key=${encodeURIComponent(key)}`,
+    previewUrl: "",
+    previewKey: "",
+    mime,
+    size: file.size,
+    metadata,
+  };
+}
+
 async function filesFromForm(form) {
   const filesStore = getStore("memory-files");
   const files = [];
   for (const file of form.getAll("files")) {
     if (!file || !file.name || file.size === 0) continue;
-    const arrayBuffer = await file.arrayBuffer();
-    const mime = mimeFromFilename(file.name, file.type);
-    const key = `${Date.now()}-${crypto.randomUUID()}-${file.name.replace(/[^a-zA-Z0-9._-]/g, "-")}`;
-    const metadata = isImageFile({ name: file.name, mime }) ? extractBasicImageMetadata(arrayBuffer) : {};
-
-    await filesStore.set(key, arrayBuffer, {
-      metadata: {
-        name: file.name,
-        mime,
-      },
-    });
-
-    files.push({
-      id: `file-${crypto.randomUUID()}`,
-      name: file.name,
-      url: `/api/file?key=${encodeURIComponent(key)}`,
-      previewUrl: "",
-      mime,
-      size: file.size,
-      metadata,
-    });
+    files.push(await storeFormFile(filesStore, file));
   }
+
+  const previews = [];
+  for (const file of form.getAll("previews")) {
+    if (!file || !file.name || file.size === 0) continue;
+    previews.push(await storeFormFile(filesStore, file));
+  }
+
+  previews.forEach((preview, index) => {
+    if (!files[index]) return;
+    files[index].previewUrl = preview.url;
+    files[index].previewKey = preview.key;
+  });
+
   return files;
+}
+
+async function deleteMemory(id) {
+  const memories = await readMemories();
+  const memory = memories.find((item) => item.id === id);
+  if (!memory) return null;
+
+  const filesStore = getStore("memory-files");
+  for (const file of memory.files || []) {
+    const keys = [
+      file.key,
+      file.previewKey,
+      fileKeyFromUrl(file.url),
+      fileKeyFromUrl(file.previewUrl),
+    ].filter(Boolean);
+    for (const key of new Set(keys)) {
+      await filesStore.delete(key);
+    }
+  }
+
+  await writeMemories(memories.filter((item) => item.id !== id));
+  return memory;
 }
 
 async function buildMemory(fields, files) {
@@ -258,6 +309,13 @@ export default async (request) => {
 
   if (request.method === "GET") {
     return json(filterMemories(await readMemories(), url));
+  }
+
+  const memoryDeleteMatch = url.pathname.match(/\/memories\/([^/]+)$/);
+  if (request.method === "DELETE" && memoryDeleteMatch) {
+    const memory = await deleteMemory(decodeURIComponent(memoryDeleteMatch[1]));
+    if (!memory) return json({ error: "Erinnerung nicht gefunden" }, 404);
+    return json({ ok: true, id: memory.id });
   }
 
   if (request.method === "POST") {

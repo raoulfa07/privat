@@ -3,6 +3,11 @@
   functions = "netlify/functions"
 
 [[redirects]]
+  from = "/api/memories/:id"
+  to = "/.netlify/functions/memories/:id"
+  status = 200
+
+[[redirects]]
   from = "/api/memories"
   to = "/.netlify/functions/memories"
   status = 200
