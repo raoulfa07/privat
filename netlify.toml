@@ -13,6 +13,11 @@
   status = 200
 
 [[redirects]]
+  from = "/api/ai-search"
+  to = "/.netlify/functions/ai-search"
+  status = 200
+
+[[redirects]]
   from = "/events"
   to = "/.netlify/functions/events"
   status = 200

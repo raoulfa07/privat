@@ -136,6 +136,104 @@
     margin-bottom: 20px;
   }
 
+  .ai-panel {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--paper);
+    margin-bottom: 20px;
+  }
+
+  .ai-panel h2 {
+    margin: 0;
+    font-size: 16px;
+  }
+
+  .ai-panel p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.35;
+  }
+
+  .ai-form {
+    display: grid;
+    grid-template-columns: 1fr 44px;
+    gap: 8px;
+  }
+
+  .ai-form button {
+    min-height: 42px;
+    border: 0;
+    border-radius: var(--radius);
+    color: white;
+    background: var(--rose);
+    font-weight: 800;
+  }
+
+  .ai-answer {
+    display: none;
+    padding: 10px;
+    border-radius: var(--radius);
+    color: var(--ink);
+    background: var(--white);
+    border: 1px solid var(--line);
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .ai-answer.active { display: block; }
+
+  .ai-results {
+    display: grid;
+    gap: 7px;
+  }
+
+  .ai-result {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    gap: 9px;
+    align-items: center;
+    width: 100%;
+    min-height: 54px;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--white);
+    color: var(--ink);
+    text-align: left;
+  }
+
+  .ai-result img, .ai-result-fallback {
+    width: 44px;
+    height: 44px;
+    border-radius: 6px;
+    object-fit: cover;
+    background: var(--soft);
+  }
+
+  .ai-result-fallback {
+    display: grid;
+    place-items: center;
+    color: var(--rose);
+    font-weight: 800;
+  }
+
+  .ai-result strong {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13px;
+  }
+
+  .ai-result span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
   .primary, .secondary {
     border-radius: var(--radius);
     min-height: 42px;
@@ -488,6 +586,19 @@
       <button class="secondary" id="resetWorld" type="button">Zur Weltkugel</button>
       <button class="secondary" id="openUpload" type="button">Erinnerung hinzufügen</button>
     </div>
+
+    <section class="ai-panel" aria-label="KI-Suche">
+      <div>
+        <h2>KI fragen</h2>
+        <p>Frage nach Momenten, Orten, Daten oder Stimmungen. Bilder werden erst einmal nicht an die KI gesendet.</p>
+      </div>
+      <form class="ai-form" id="aiForm">
+        <input id="aiQuestion" type="search" placeholder="z. B. zeig mir Münster">
+        <button type="submit" aria-label="KI-Suche starten">→</button>
+      </form>
+      <div class="ai-answer" id="aiAnswer"></div>
+      <div class="ai-results" id="aiResults"></div>
+    </section>
   </aside>
 
   <main class="main">
@@ -598,6 +709,7 @@ const state = {
   targetQuaternion: new THREE.Quaternion(),
   globeQuaternion: new THREE.Quaternion(),
   autoRotate: true,
+  aiBusy: false,
   pins: [],
   raycaster: new THREE.Raycaster(),
   pointer: new THREE.Vector2(),
@@ -813,6 +925,50 @@ function renderTimeline() {
   document.querySelectorAll(".moment[data-memory]").forEach((item) => {
     item.addEventListener("click", () => goToMemory(item.dataset.memory, { openStation: true }));
   });
+}
+
+function renderAiResults(memories) {
+  el("aiResults").innerHTML = (memories || []).map((memory) => {
+    const img = imageFile(memory);
+    return `
+      <button class="ai-result" type="button" data-memory="${memory.id}">
+        ${img ? `<img src="${imageUrl(img)}" alt="">` : `<span class="ai-result-fallback">•</span>`}
+        <span>
+          <strong>${escapeHtml(memory.title || "Erinnerung")}</strong>
+          <span>${fmtDate(memory.date)} · ${escapeHtml(memory.place || "Ort offen")}</span>
+        </span>
+      </button>
+    `;
+  }).join("");
+  document.querySelectorAll(".ai-result[data-memory]").forEach((button) => {
+    button.addEventListener("click", () => goToMemory(button.dataset.memory, { openStation: true }));
+  });
+}
+
+async function askAi(question) {
+  if (state.aiBusy) return;
+  state.aiBusy = true;
+  el("aiAnswer").classList.add("active");
+  el("aiAnswer").textContent = "Ich suche in euren Erinnerungen...";
+  el("aiResults").innerHTML = "";
+
+  try {
+    const response = await fetch("/api/ai-search", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question }),
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Die KI-Suche ist gerade nicht erreichbar.");
+    const source = data.source === "gemini" ? "Gemini" : "lokale Suche";
+    el("aiAnswer").textContent = `${data.answer} (${source})`;
+    renderAiResults(data.memories || []);
+    if (data.memories?.[0]?.id) goToMemory(data.memories[0].id);
+  } catch (error) {
+    el("aiAnswer").textContent = error.message;
+  } finally {
+    state.aiBusy = false;
+  }
 }
 
 function pinMaterial(selected = false) {
@@ -1208,6 +1364,11 @@ el("wizardSave").style.display = "none";
 el("wizardBack").style.visibility = "hidden";
 el("searchInput").addEventListener("input", loadMemories);
 el("typeFilter").addEventListener("change", loadMemories);
+el("aiForm").addEventListener("submit", (event) => {
+  event.preventDefault();
+  const question = el("aiQuestion").value.trim();
+  if (question) askAi(question);
+});
 el("zoomRange").addEventListener("input", (event) => {
   state.autoRotate = false;
   state.targetDistance = Number(event.target.value);
