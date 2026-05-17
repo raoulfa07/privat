@@ -73,6 +73,12 @@
     margin-bottom: 24px;
   }
 
+  .brand-tools {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
   .brand h1 {
     margin: 0;
     font-family: var(--serif);
@@ -99,6 +105,19 @@
   }
 
   .dot.on { background: #607848; box-shadow: 0 0 0 4px rgba(96, 120, 72, 0.13); }
+
+  .panel-toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--parchment);
+    background: rgba(244, 236, 216, 0.08);
+    font-size: 18px;
+    line-height: 1;
+  }
 
   .search, .memory-form {
     display: grid;
@@ -764,6 +783,36 @@
       background: rgba(8, 12, 28, 0.68);
       box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
       backdrop-filter: blur(20px);
+      transition: width 0.36s ease, max-height 0.36s ease, padding 0.36s ease, background 0.36s ease;
+    }
+
+    .sidebar.collapsed {
+      width: min(226px, calc(100vw - 48px));
+      max-height: 78px;
+      overflow: hidden;
+      background: rgba(8, 12, 28, 0.5);
+    }
+
+    .sidebar.collapsed .brand {
+      margin-bottom: 0;
+      align-items: center;
+    }
+
+    .sidebar.collapsed .brand h1 {
+      font-size: 22px;
+      line-height: 0.95;
+    }
+
+    .sidebar.collapsed .search,
+    .sidebar.collapsed .tabs,
+    .sidebar.collapsed .tour-controls,
+    .sidebar.collapsed .ai-panel {
+      display: none;
+    }
+
+    body.panel-collapsed .stage-copy {
+      left: 262px;
+      width: min(660px, calc(100% - 312px));
     }
 
     .brand {
@@ -856,6 +905,7 @@
     .hud { left: 20px; right: 20px; top: 20px; width: auto; }
     .station { left: 20px; top: 150px; width: calc(100% - 40px); }
     .station-actions { grid-template-columns: 1fr; }
+    .panel-toggle { display: none; }
   }
 </style>
 </head>
@@ -873,7 +923,10 @@
   <aside class="sidebar">
     <div class="brand">
       <h1>Charleen<br>& Raoul</h1>
-      <span class="live"><span class="dot" id="liveDot"></span><span id="liveText">offline</span></span>
+      <span class="brand-tools">
+        <span class="live"><span class="dot" id="liveDot"></span><span id="liveText">offline</span></span>
+        <button class="panel-toggle" id="panelToggle" type="button" aria-label="Navigation einklappen" title="Navigation einklappen">−</button>
+      </span>
     </div>
 
     <div class="search">
@@ -1801,6 +1854,15 @@ function uploadStep() {
   return Number(el("uploadModal").dataset.step || "1");
 }
 
+function setPanelCollapsed(collapsed) {
+  el("panelToggle").textContent = collapsed ? "+" : "−";
+  el("panelToggle").setAttribute("aria-label", collapsed ? "Navigation ausklappen" : "Navigation einklappen");
+  el("panelToggle").title = collapsed ? "Navigation ausklappen" : "Navigation einklappen";
+  document.querySelector(".sidebar").classList.toggle("collapsed", collapsed);
+  document.body.classList.toggle("panel-collapsed", collapsed);
+  localStorage.setItem("rundgangPanelCollapsed", collapsed ? "1" : "0");
+}
+
 function clearUploadPreviews() {
   state.uploadPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
   state.uploadPreviewUrls = [];
@@ -1884,6 +1946,10 @@ el("startTour").addEventListener("click", startTour);
 el("resetWorld").addEventListener("click", resetWorld);
 el("openUpload").addEventListener("click", openUploadModal);
 el("closeUpload").addEventListener("click", closeUploadModal);
+el("panelToggle").addEventListener("click", () => {
+  setPanelCollapsed(!document.querySelector(".sidebar").classList.contains("collapsed"));
+});
+setPanelCollapsed(localStorage.getItem("rundgangPanelCollapsed") === "1");
 el("introStart").addEventListener("click", () => {
   el("intro").classList.add("hidden");
   sessionStorage.setItem("rundgangIntroSeen", "1");
