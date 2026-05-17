@@ -817,6 +817,7 @@ const imageFile = (memory) => {
 };
 const imageUrl = (file) => file ? (file.previewUrl || file.url || "") : "";
 const fmtDate = (date) => date ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(`${date}T12:00:00`)) : "ohne Datum";
+const HEIC_CONVERTER_URL = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
 
 const knownPlaces = {
   berlin: { lat: 52.52, lng: 13.405 },
@@ -830,7 +831,15 @@ const knownPlaces = {
   duesseldorf: { lat: 51.2277, lng: 6.7735 },
   düsseldorf: { lat: 51.2277, lng: 6.7735 },
   frankfurt: { lat: 50.1109, lng: 8.6821 },
+  gent: { lat: 51.0543, lng: 3.7174 },
+  ghent: { lat: 51.0543, lng: 3.7174 },
+  "gent belgien": { lat: 51.0543, lng: 3.7174 },
+  "gent belgium": { lat: 51.0543, lng: 3.7174 },
 };
+
+function placeKey(place) {
+  return String(place || "").toLowerCase().replace(/[,\s]+/g, " ").trim();
+}
 
 function escapeHtml(value) {
   return String(value || "").replace(/[&<>"']/g, (char) => ({
@@ -854,6 +863,31 @@ function imageMarkup(file, className, alt) {
   return `<img class="${className}" src="${src}" alt="${escapeHtml(alt)}" data-fallback="${escapeHtml(fallback)}">`;
 }
 
+function isHeicFile(file) {
+  const name = String(file?.name || "").toLowerCase();
+  const mime = String(file?.type || file?.mime || "").toLowerCase();
+  return mime === "image/heic" || mime === "image/heif" || name.endsWith(".heic") || name.endsWith(".heif");
+}
+
+async function loadHeicConverter() {
+  if (window.heic2any) return window.heic2any;
+  await new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[src="${HEIC_CONVERTER_URL}"]`);
+    if (existing) {
+      existing.addEventListener("load", resolve, { once: true });
+      existing.addEventListener("error", reject, { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = HEIC_CONVERTER_URL;
+    script.async = true;
+    script.onload = resolve;
+    script.onerror = reject;
+    document.head.appendChild(script);
+  });
+  return window.heic2any;
+}
+
 function wireImageFallbacks(scope = document) {
   scope.querySelectorAll("img[data-fallback]").forEach((img) => {
     img.addEventListener("error", () => {
@@ -872,9 +906,9 @@ function wireImageFallbacks(scope = document) {
 }
 
 function memoryGeo(memory) {
-  if (Number.isFinite(memory.lat) && Number.isFinite(memory.lng)) return { lat: memory.lat, lng: memory.lng, approximate: false };
-  const known = knownPlaces[String(memory.place || "").toLowerCase().trim()];
+  const known = knownPlaces[placeKey(memory.place)];
   if (known) return { ...known, approximate: false };
+  if (Number.isFinite(memory.lat) && Number.isFinite(memory.lng)) return { lat: memory.lat, lng: memory.lng, approximate: false };
   return { lat: 0, lng: 0, approximate: true };
 }
 
@@ -882,9 +916,9 @@ function latLngVector(lat, lng, radius = 2.05) {
   const latRad = THREE.MathUtils.degToRad(lat);
   const lngRad = THREE.MathUtils.degToRad(lng);
   return new THREE.Vector3(
-    radius * Math.cos(latRad) * Math.sin(lngRad),
+    radius * Math.cos(latRad) * Math.cos(lngRad),
     radius * Math.sin(latRad),
-    radius * Math.cos(latRad) * Math.cos(lngRad)
+    -radius * Math.cos(latRad) * Math.sin(lngRad)
   );
 }
 
@@ -1113,6 +1147,7 @@ function renderPins() {
   state.pins = [];
   state.filtered.forEach((memory) => {
     const geo = memoryGeo(memory);
+    if (geo.approximate) return;
     const marker = new THREE.Mesh(new THREE.SphereGeometry(memory.id === state.selectedId ? 0.055 : 0.038, 20, 20), pinMaterial(memory.id === state.selectedId));
     marker.position.copy(latLngVector(geo.lat, geo.lng, 2.08));
     marker.userData.memoryId = memory.id;
@@ -1313,6 +1348,17 @@ function fieldValue(form, name) {
 }
 
 async function imagePreviewFile(file, index = 0) {
+  if (isHeicFile(file)) {
+    try {
+      const heic2any = await loadHeicConverter();
+      const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.86 });
+      const blob = Array.isArray(converted) ? converted[0] : converted;
+      if (!blob) return null;
+      return new File([blob], `preview-${index}-${file.name.replace(/\.[^.]+$/, "") || "bild"}.jpg`, { type: "image/jpeg" });
+    } catch {
+      return null;
+    }
+  }
   if (!file.type.startsWith("image/") || file.type === "image/gif") return null;
   const image = new Image();
   const objectUrl = URL.createObjectURL(file);

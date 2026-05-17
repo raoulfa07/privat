@@ -123,7 +123,7 @@ function isImageFile(file) {
 }
 
 function knownPlaceCoords(place) {
-  const key = String(place || "").toLowerCase().trim();
+  const key = String(place || "").toLowerCase().replace(/[,\s]+/g, " ").trim();
   const places = {
     berlin: { lat: 52.52, lng: 13.405, label: "Berlin, Deutschland" },
     hamburg: { lat: 53.5511, lng: 9.9937, label: "Hamburg, Deutschland" },
@@ -136,6 +136,10 @@ function knownPlaceCoords(place) {
     duesseldorf: { lat: 51.2277, lng: 6.7735, label: "Duesseldorf, Deutschland" },
     düsseldorf: { lat: 51.2277, lng: 6.7735, label: "Düsseldorf, Deutschland" },
     frankfurt: { lat: 50.1109, lng: 8.6821, label: "Frankfurt am Main, Deutschland" },
+    gent: { lat: 51.0543, lng: 3.7174, label: "Gent, Belgien" },
+    ghent: { lat: 51.0543, lng: 3.7174, label: "Ghent, Belgium" },
+    "gent belgien": { lat: 51.0543, lng: 3.7174, label: "Gent, Belgien" },
+    "gent belgium": { lat: 51.0543, lng: 3.7174, label: "Gent, Belgien" },
   };
   return places[key] || null;
 }
@@ -149,7 +153,7 @@ async function geocodePlace(place) {
   const cache = readGeocodeCache();
   if (cache[cacheKey]) return cache[cacheKey];
 
-  const query = /,/.test(place) ? place : `${place}, Deutschland`;
+  const query = String(place).trim();
   const url = new URL("https://nominatim.openstreetmap.org/search");
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("limit", "1");
@@ -177,6 +181,25 @@ async function geocodePlace(place) {
   cache[cacheKey] = result;
   writeGeocodeCache(cache);
   return result;
+}
+
+function correctKnownPlaceCoordinates(memory) {
+  const known = knownPlaceCoords(memory.place);
+  if (!known) return memory;
+  const hasCorrectCoords = Math.abs(Number(memory.lat) - known.lat) < 0.02 && Math.abs(Number(memory.lng) - known.lng) < 0.02;
+  if (hasCorrectCoords) return memory;
+  return {
+    ...memory,
+    lat: known.lat,
+    lng: known.lng,
+    metadata: {
+      ...(memory.metadata || {}),
+      geocoding: {
+        label: known.label,
+        source: known.source || "known-place",
+      },
+    },
+  };
 }
 
 function extractBasicImageMetadata(filePath) {
@@ -326,6 +349,7 @@ function getFilteredMemories(url) {
   const query = String(url.searchParams.get("q") || "").toLowerCase();
   const type = String(url.searchParams.get("type") || "all");
   return readMemories()
+    .map(correctKnownPlaceCoordinates)
     .filter((memory) => {
       const haystack = [
         memory.title,
