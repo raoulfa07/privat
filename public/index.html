@@ -626,7 +626,115 @@
   .toast.active { display: block; }
   .toast.error { background: #8d3344; }
 
-  @media (max-width: 920px) {
+  @media (min-width: 760px) {
+    body {
+      background: #070a0f;
+      overflow-x: hidden;
+    }
+
+    .app {
+      display: block;
+      min-height: 100vh;
+    }
+
+    .sidebar {
+      position: fixed;
+      z-index: 22;
+      left: 24px;
+      top: 24px;
+      width: min(350px, calc(100vw - 48px));
+      height: auto;
+      max-height: calc(100vh - 48px);
+      padding: 18px;
+      overflow: auto;
+      border: 1px solid rgba(255, 253, 248, 0.18);
+      border-radius: 8px;
+      background: rgba(255, 253, 248, 0.82);
+      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(20px);
+    }
+
+    .brand {
+      margin-bottom: 16px;
+    }
+
+    .brand h1 {
+      font-size: 26px;
+    }
+
+    .search {
+      margin-bottom: 12px;
+    }
+
+    .tabs {
+      margin-bottom: 14px;
+    }
+
+    .tour-controls {
+      padding: 12px 0 14px;
+      margin-bottom: 14px;
+    }
+
+    .ai-panel {
+      margin-bottom: 0;
+      background: rgba(251, 248, 241, 0.7);
+    }
+
+    .main {
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    .stage {
+      min-height: 100vh;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    .stage::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(7, 10, 15, 0.58), transparent 42%),
+        linear-gradient(0deg, rgba(7, 10, 15, 0.72), transparent 34%);
+    }
+
+    .hud {
+      right: 24px;
+      top: 24px;
+      width: min(330px, calc(100% - 420px));
+    }
+
+    .stage-copy {
+      left: 398px;
+      bottom: 40px;
+      z-index: 5;
+      width: min(620px, calc(100% - 450px));
+    }
+
+    .stage-copy h2 {
+      font-size: clamp(44px, 5.8vw, 82px);
+    }
+
+    .station {
+      left: auto;
+      right: 24px;
+      top: 186px;
+      width: min(390px, calc(100% - 48px));
+    }
+
+    .views.active {
+      margin-top: 0;
+      min-height: 100vh;
+      padding: 30px;
+      background: var(--paper);
+    }
+  }
+
+  @media (max-width: 759px) {
     .app { grid-template-columns: 1fr; }
     .sidebar { position: relative; height: auto; order: 2; }
     .main { order: 1; padding: 18px; }
@@ -1138,19 +1246,73 @@ async function askAi(question) {
   }
 }
 
-function pinMaterial(selected = false) {
-  return new THREE.MeshBasicMaterial({ color: selected ? 0xff6f8a : 0xfffdf8 });
+function markerTexture(selected = false) {
+  const canvas = document.createElement("canvas");
+  canvas.width = 96;
+  canvas.height = 128;
+  const ctx = canvas.getContext("2d");
+  const accent = selected ? "#ff6f8a" : "#fffdf8";
+  const glow = selected ? "rgba(255,111,138,0.42)" : "rgba(255,253,248,0.26)";
+
+  const gradient = ctx.createRadialGradient(48, 42, 2, 48, 42, 34);
+  gradient.addColorStop(0, glow);
+  gradient.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = gradient;
+  ctx.beginPath();
+  ctx.arc(48, 42, 36, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = selected ? "rgba(255,111,138,0.95)" : "rgba(255,253,248,0.82)";
+  ctx.lineWidth = selected ? 5 : 4;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  ctx.moveTo(48, 50);
+  ctx.lineTo(48, 102);
+  ctx.stroke();
+
+  ctx.fillStyle = accent;
+  ctx.beginPath();
+  ctx.arc(48, 38, selected ? 12 : 9, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.strokeStyle = "rgba(16,21,27,0.55)";
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(48, 38, selected ? 12 : 9, 0, Math.PI * 2);
+  ctx.stroke();
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
+function createMemoryMarker(memory, geo) {
+  const selected = memory.id === state.selectedId;
+  const material = new THREE.SpriteMaterial({
+    map: markerTexture(selected),
+    transparent: true,
+    depthTest: true,
+    depthWrite: false,
+  });
+  const marker = new THREE.Sprite(material);
+  marker.position.copy(latLngVector(geo.lat, geo.lng, 2.14));
+  marker.scale.set(selected ? 0.22 : 0.16, selected ? 0.29 : 0.21, 1);
+  marker.center.set(0.5, 0.18);
+  marker.userData.memoryId = memory.id;
+  return marker;
 }
 
 function renderPins() {
-  state.pins.forEach((pin) => globeGroup.remove(pin));
+  state.pins.forEach((pin) => {
+    globeGroup.remove(pin);
+    pin.material?.map?.dispose?.();
+    pin.material?.dispose?.();
+  });
   state.pins = [];
   state.filtered.forEach((memory) => {
     const geo = memoryGeo(memory);
     if (geo.approximate) return;
-    const marker = new THREE.Mesh(new THREE.SphereGeometry(memory.id === state.selectedId ? 0.055 : 0.038, 20, 20), pinMaterial(memory.id === state.selectedId));
-    marker.position.copy(latLngVector(geo.lat, geo.lng, 2.08));
-    marker.userData.memoryId = memory.id;
+    const marker = createMemoryMarker(memory, geo);
     state.pins.push(marker);
     globeGroup.add(marker);
   });
