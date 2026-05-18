@@ -782,6 +782,50 @@
     gap: 16px;
   }
 
+  .gallery-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgba(8, 12, 28, 0.68);
+    color: var(--parchment);
+  }
+
+  .gallery-toolbar strong {
+    display: block;
+    font-size: 14px;
+  }
+
+  .gallery-toolbar span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  .gallery-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .gallery-actions button {
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: var(--radius);
+    border: 1px solid var(--line);
+    color: var(--parchment);
+    background: rgba(244, 236, 216, 0.08);
+    font-weight: 700;
+  }
+
+  .gallery-actions .danger {
+    background: rgba(217, 95, 118, 0.22);
+  }
+
   .card, .moment-card {
     overflow: hidden;
     border: 1px solid var(--line);
@@ -789,6 +833,46 @@
     background: rgba(8, 12, 28, 0.82);
     color: var(--parchment);
     box-shadow: var(--shadow);
+  }
+
+  .card {
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
+  }
+
+  .card.selecting {
+    cursor: pointer;
+  }
+
+  .card.selected {
+    border-color: var(--ember);
+    box-shadow:
+      0 0 0 2px rgba(244, 184, 96, 0.34),
+      var(--shadow);
+  }
+
+  .select-badge {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 2;
+    display: grid;
+    place-items: center;
+    width: 30px;
+    height: 30px;
+    border: 1px solid rgba(244, 236, 216, 0.42);
+    border-radius: 999px;
+    color: transparent;
+    background: rgba(4, 6, 15, 0.68);
+    backdrop-filter: blur(10px);
+    font-weight: 900;
+  }
+
+  .card.selected .select-badge {
+    color: var(--night);
+    background: var(--ember);
+    border-color: var(--ember);
   }
 
   .thumb {
@@ -1169,6 +1253,7 @@
     </section>
 
     <section class="views" id="galleryView">
+      <div class="gallery-toolbar" id="galleryToolbar"></div>
       <div class="memory-grid" id="memoryGrid"></div>
     </section>
 
@@ -1270,6 +1355,8 @@ const state = {
   aiBusy: false,
   uploadPreviewUrls: [],
   toastTimer: 0,
+  gallerySelectMode: false,
+  selectedGalleryIds: new Set(),
   pins: [],
   raycaster: new THREE.Raycaster(),
   pointer: new THREE.Vector2(),
@@ -1481,6 +1568,7 @@ function setView(view) {
   document.querySelectorAll(".views").forEach((section) => section.classList.remove("active"));
   if (view !== "world") el(`${view}View`).classList.add("active");
   el("worldView").style.display = view === "world" ? "block" : "none";
+  if (view !== "gallery") clearGallerySelection();
 }
 
 async function loadMemories() {
@@ -1530,14 +1618,20 @@ function renderStats() {
 }
 
 function renderGallery() {
+  renderGalleryToolbar();
   if (!state.filtered.length) {
     el("memoryGrid").innerHTML = `<div class="empty">Noch nichts gefunden. Lade die erste Erinnerung hoch oder aendere die Suche.</div>`;
     return;
   }
+  state.selectedGalleryIds.forEach((id) => {
+    if (!state.filtered.some((memory) => memory.id === id)) state.selectedGalleryIds.delete(id);
+  });
   el("memoryGrid").innerHTML = state.filtered.map((memory) => {
     const img = imageFile(memory);
+    const selected = state.selectedGalleryIds.has(memory.id);
     return `
-      <article class="card" data-memory="${memory.id}">
+      <article class="card ${state.gallerySelectMode ? "selecting" : ""} ${selected ? "selected" : ""}" data-memory="${memory.id}">
+        ${state.gallerySelectMode ? `<span class="select-badge" aria-hidden="true">${selected ? "✓" : ""}</span>` : ""}
         <div class="thumb">${img ? imageMarkup(img, "", memory.title) : "Noch kein Bild"}</div>
         <div class="card-body">
           <h3>${escapeHtml(memory.title)}</h3>
@@ -1549,9 +1643,62 @@ function renderGallery() {
     `;
   }).join("");
   document.querySelectorAll(".card[data-memory]").forEach((card) => {
-    card.addEventListener("click", () => goToMemory(card.dataset.memory, { openStation: true }));
+    card.addEventListener("click", () => {
+      if (state.gallerySelectMode) {
+        toggleGallerySelection(card.dataset.memory);
+        return;
+      }
+      goToMemory(card.dataset.memory, { openStation: true });
+    });
   });
   wireImageFallbacks(el("memoryGrid"));
+}
+
+function renderGalleryToolbar() {
+  const count = state.selectedGalleryIds.size;
+  el("galleryToolbar").innerHTML = `
+    <div>
+      <strong>${state.gallerySelectMode ? `${count} markiert` : "Bilder verwalten"}</strong>
+      <span>${state.gallerySelectMode ? "Markiere mehrere Erinnerungen und lösche sie gesammelt." : "Auswahlmodus aktivieren, um mehrere Bilder zu löschen."}</span>
+    </div>
+    <div class="gallery-actions">
+      ${state.gallerySelectMode ? `
+        <button type="button" id="selectAllGallery">Alle markieren</button>
+        <button type="button" id="clearGallerySelection">Abbrechen</button>
+        <button class="danger" type="button" id="deleteSelectedGallery" ${count ? "" : "disabled"}>${count || ""} löschen</button>
+      ` : `
+        <button type="button" id="startGallerySelection">Auswählen</button>
+      `}
+    </div>
+  `;
+  el("startGallerySelection")?.addEventListener("click", startGallerySelection);
+  el("selectAllGallery")?.addEventListener("click", selectAllGallery);
+  el("clearGallerySelection")?.addEventListener("click", clearGallerySelection);
+  el("deleteSelectedGallery")?.addEventListener("click", deleteSelectedGallery);
+}
+
+function startGallerySelection() {
+  state.gallerySelectMode = true;
+  state.selectedGalleryIds.clear();
+  renderGallery();
+}
+
+function toggleGallerySelection(id) {
+  if (state.selectedGalleryIds.has(id)) state.selectedGalleryIds.delete(id);
+  else state.selectedGalleryIds.add(id);
+  renderGallery();
+}
+
+function selectAllGallery() {
+  state.filtered.forEach((memory) => state.selectedGalleryIds.add(memory.id));
+  renderGallery();
+}
+
+function clearGallerySelection() {
+  if (!state.gallerySelectMode && !state.selectedGalleryIds.size) return;
+  state.gallerySelectMode = false;
+  state.selectedGalleryIds.clear();
+  if (el("galleryToolbar")) renderGallery();
 }
 
 function renderTimeline() {
@@ -1805,11 +1952,9 @@ async function deleteMemory(id) {
   const confirmed = confirm(`Soll "${memory.title || "diese Erinnerung"}" wirklich geloescht werden?`);
   if (!confirmed) return;
 
-  let response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: "DELETE" });
-  if (!response.ok && response.status === 404) {
-    response = await fetch(`/api/memories?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-  }
-  if (!response.ok) {
+  try {
+    await deleteMemoryOnServer(id);
+  } catch {
     showToast("Die Erinnerung konnte nicht geloescht werden.", "error");
     return;
   }
@@ -1823,6 +1968,52 @@ async function deleteMemory(id) {
   resetWorld();
   await loadMemories();
   showToast("Erinnerung geloescht.");
+}
+
+async function deleteMemoryOnServer(id) {
+  let response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!response.ok && response.status === 404) {
+    response = await fetch(`/api/memories?id=${encodeURIComponent(id)}`, { method: "DELETE" });
+  }
+  if (!response.ok) throw new Error(await response.text());
+  return response.json().catch(() => ({ ok: true, id }));
+}
+
+async function deleteSelectedGallery() {
+  const ids = Array.from(state.selectedGalleryIds);
+  if (!ids.length) return;
+  const confirmed = confirm(`Sollen ${ids.length} markierte Erinnerung(en) wirklich geloescht werden? Die Bilder und Vorschauen werden ebenfalls entfernt.`);
+  if (!confirmed) return;
+
+  const deleteButton = el("deleteSelectedGallery");
+  if (deleteButton) {
+    deleteButton.disabled = true;
+    deleteButton.textContent = "Lösche...";
+  }
+
+  const failed = [];
+  for (const id of ids) {
+    try {
+      await deleteMemoryOnServer(id);
+    } catch {
+      failed.push(id);
+    }
+  }
+
+  await loadMemories();
+  const stillPresent = ids.filter((id) => state.memories.some((memory) => memory.id === id));
+  const notDeleted = Array.from(new Set([...failed, ...stillPresent]));
+  state.selectedGalleryIds = new Set(notDeleted);
+  state.gallerySelectMode = notDeleted.length > 0;
+  render();
+
+  if (notDeleted.length) {
+    showToast(`${notDeleted.length} Erinnerung(en) konnten nicht geloescht werden.`, "error");
+    return;
+  }
+
+  clearGallerySelection();
+  showToast(`${ids.length} Erinnerung(en) geloescht.`);
 }
 
 function pointerToNdc(event) {
