@@ -1581,7 +1581,8 @@ async function loadMemories() {
 }
 
 function connectEvents() {
-  if (location.hostname.includes("netlify.app")) {
+  const localHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
+  if (!localHostnames.has(location.hostname)) {
     el("liveDot").classList.add("on");
     el("liveText").textContent = "online";
     return;

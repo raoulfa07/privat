@@ -27,6 +27,31 @@ GEMINI_API_KEY=dein_key npm start
 
 Bei Netlify gehoert der Key in `Site configuration > Environment variables` als `GEMINI_API_KEY`. Der Key wird nicht im Browser gespeichert und nicht ins Repository eingecheckt.
 
+Bei Cloudflare gehoert der Key in `Workers & Pages > dein Projekt > Settings > Variables and Secrets` als verschluesseltes Secret `GEMINI_API_KEY`.
+
+## Cloudflare Pages Deployment
+
+Das Projekt ist auch fuer Cloudflare Pages vorbereitet:
+
+- `public/` ist das Ausgabeverzeichnis.
+- `functions/api/` enthaelt die Cloudflare Pages Functions fuer `/api/memories`, `/api/file` und `/api/ai-search`.
+- Erinnerungsdaten werden in KV gespeichert.
+- Bilder und Vorschauen werden in R2 gespeichert.
+
+### Cloudflare Bindings
+
+Damit Uploads und Loeschen funktionieren, muessen im Cloudflare Pages Projekt diese Bindings angelegt sein:
+
+1. KV Namespace erstellen, z. B. `charleen_raoul_memories`
+2. R2 Bucket erstellen, z. B. `charleen-raoul-files`
+3. Im Pages Projekt unter `Settings > Functions > Bindings` verbinden:
+   - KV Namespace Binding name: `MEMORY_DATA`
+   - R2 Bucket Binding name: `MEMORY_FILES`
+4. Optional unter `Settings > Variables and Secrets`:
+   - Secret: `GEMINI_API_KEY`
+
+Ohne diese Bindings kann Cloudflare zwar die statische Seite anzeigen, aber neue Erinnerungen koennen nicht gespeichert werden.
+
 ## Netlify-Deployment
 
 Das Projekt ist fuer Netlify vorbereitet:
