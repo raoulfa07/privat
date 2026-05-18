@@ -73,6 +73,19 @@ Das Projekt ist fuer Netlify vorbereitet:
 
 Netlify installiert `@netlify/blobs` aus `package.json`. Danach funktionieren API und Uploads ueber die Netlify Functions.
 
+### Cloudflare 404 bei `/api/*`
+
+Wenn `/api/health` oder `/api/memories` auf Cloudflare 404 liefert, werden die Pages Functions nicht deployed. Pruefe dann im Cloudflare Pages Projekt:
+
+- Git repository: dieses Repository.
+- Root directory: leer lassen, nicht `public`.
+- Build command: leer lassen oder `npm install`.
+- Build output directory: `public`.
+- Functions directory muss im Repositoryroot `functions` liegen.
+- Der Ordner `functions/` muss im letzten Deploy-Log auftauchen.
+
+Die Datei `wrangler.toml` setzt `pages_build_output_dir = "public"` fuer Cloudflare Pages. Die Binding-IDs in `wrangler.toml` sind Platzhalter; in der Cloudflare UI muessen die Bindings trotzdem exakt `MEMORY_DATA` und `MEMORY_FILES` heissen.
+
 ## Lokale Netlify-Simulation
 
 Optional mit Netlify CLI:
