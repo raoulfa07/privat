@@ -584,6 +584,12 @@
       inset 0 1px 0 rgba(255, 255, 255, 0.32);
   }
 
+  body.station-open .upload-fab {
+    opacity: 0;
+    transform: translateY(18px) scale(0.96);
+    pointer-events: none;
+  }
+
   .upload-fab .fab-icon {
     display: grid;
     place-items: center;
@@ -1747,6 +1753,7 @@ function showStation(id) {
     </div>
   `;
   el("stationPanel").classList.add("active");
+  document.body.classList.add("station-open");
   el("stageCopy").style.display = "none";
   el("prevMemory").addEventListener("click", previousMemory);
   el("nextMemory").addEventListener("click", nextMemory);
@@ -1757,6 +1764,7 @@ function showStation(id) {
 
 function closeStation() {
   el("stationPanel").classList.remove("active");
+  document.body.classList.remove("station-open");
   el("stageCopy").style.display = "";
 }
 
