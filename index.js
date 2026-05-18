@@ -345,6 +345,40 @@ function deleteMemory(id) {
   return memory;
 }
 
+async function updateMemory(id, fields) {
+  const memories = readMemories();
+  const index = memories.findIndex((item) => item.id === id);
+  if (index === -1) return null;
+  const existing = memories[index];
+  const nextPlace = fields.place ?? existing.place ?? "";
+  const hasLat = fields.lat !== undefined && fields.lat !== "";
+  const hasLng = fields.lng !== undefined && fields.lng !== "";
+  const geocoded = (!hasLat || !hasLng) && nextPlace !== existing.place ? await geocodePlace(nextPlace) : null;
+  const updated = {
+    ...existing,
+    title: fields.title ?? existing.title,
+    date: normalizeDate(fields.date) || fields.date || existing.date,
+    place: nextPlace,
+    type: fields.type ?? existing.type,
+    note: fields.note ?? existing.note,
+    tags: fields.tags !== undefined ? normalizeTags(fields.tags) : existing.tags,
+    lat: hasLat ? Number(fields.lat) : geocoded?.lat ?? existing.lat,
+    lng: hasLng ? Number(fields.lng) : geocoded?.lng ?? existing.lng,
+    metadata: {
+      ...(existing.metadata || {}),
+      geocoding: geocoded ? {
+        label: geocoded.label,
+        source: geocoded.source,
+      } : existing.metadata?.geocoding || null,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+  memories[index] = updated;
+  writeMemories(memories);
+  broadcast("memoriesUpdated", memories);
+  return updated;
+}
+
 function getFilteredMemories(url) {
   const query = String(url.searchParams.get("q") || "").toLowerCase();
   const type = String(url.searchParams.get("type") || "all");
@@ -546,6 +580,15 @@ const server = http.createServer(async (req, res) => {
       const memory = deleteMemory(id);
       if (!memory) return sendJson(res, 404, { error: "Erinnerung nicht gefunden" });
       return sendJson(res, 200, { ok: true, id: memory.id });
+    }
+
+    if (memoryDeleteMatch && req.method === "PUT") {
+      const id = decodeURIComponent(memoryDeleteMatch[1]);
+      const body = await collectBody(req, 1024 * 1024);
+      const fields = body.length ? JSON.parse(body.toString("utf8")) : {};
+      const memory = await updateMemory(id, fields);
+      if (!memory) return sendJson(res, 404, { error: "Erinnerung nicht gefunden" });
+      return sendJson(res, 200, memory);
     }
 
     if (url.pathname === "/api/ai-search" && req.method === "POST") {

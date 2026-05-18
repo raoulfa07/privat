@@ -190,6 +190,59 @@
     margin-bottom: 20px;
   }
 
+  .chapter-panel {
+    display: grid;
+    gap: 10px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: rgba(8, 12, 28, 0.44);
+    margin-bottom: 20px;
+  }
+
+  .chapter-panel h2 {
+    margin: 0;
+    color: var(--parchment);
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 400;
+  }
+
+  .chapter-list {
+    display: grid;
+    gap: 7px;
+  }
+
+  .chapter-pill {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 36px;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--parchment);
+    background: rgba(244, 236, 216, 0.06);
+    text-align: left;
+  }
+
+  .chapter-pill span {
+    color: var(--muted);
+    font-size: 12px;
+  }
+
+  body.gift-mode .search,
+  body.gift-mode .ai-panel,
+  body.gift-mode .gallery-toolbar,
+  body.gift-mode .upload-fab,
+  body.gift-mode .admin-only {
+    display: none !important;
+  }
+
+  body.gift-mode .tour-controls {
+    border-top: 0;
+  }
+
   .ai-panel h2 {
     margin: 0;
     color: var(--parchment);
@@ -752,7 +805,7 @@
     color: var(--muted);
   }
   .station .image-missing { margin-bottom: 12px; }
-  .station-actions { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 12px; }
+  .station-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin-top: 12px; }
   .danger {
     border-color: rgba(217, 95, 118, 0.48);
     color: #fff;
@@ -1057,6 +1110,7 @@
     .sidebar.collapsed .search,
     .sidebar.collapsed .tabs,
     .sidebar.collapsed .tour-controls,
+    .sidebar.collapsed .chapter-panel,
     .sidebar.collapsed .ai-panel {
       display: none;
     }
@@ -1211,8 +1265,15 @@
 
     <div class="tour-controls">
       <button class="primary" id="startTour" type="button">Rundgang starten</button>
+      <button class="secondary" id="playJourney" type="button">Reise abspielen</button>
       <button class="secondary" id="resetWorld" type="button">Zur Weltkugel</button>
+      <button class="secondary" id="giftModeToggle" type="button">Geschenkmodus</button>
     </div>
+
+    <section class="chapter-panel" aria-label="Kapitel">
+      <h2>Kapitel</h2>
+      <div class="chapter-list" id="chapterList"></div>
+    </section>
 
     <section class="ai-panel" aria-label="KI-Suche">
       <div>
@@ -1330,6 +1391,44 @@
   </div>
 </div>
 
+<div class="upload-modal" id="editModal">
+  <div class="upload-panel">
+    <div class="upload-head">
+      <div>
+        <h2>Erinnerung bearbeiten</h2>
+        <p>Titel, Ort, Datum, Tags und Notiz anpassen.</p>
+      </div>
+      <button class="secondary" id="closeEdit" type="button">Schließen</button>
+    </div>
+    <form class="memory-form" id="editForm">
+      <section class="wizard-page active">
+        <input name="title" placeholder="Titel">
+        <div class="form-grid">
+          <input name="date" type="date">
+          <select name="type">
+            <option value="photo">Bild</option>
+            <option value="chat">Chat</option>
+            <option value="note">Notiz</option>
+            <option value="place">Ort</option>
+          </select>
+        </div>
+        <input name="place" placeholder="Ort">
+        <div class="form-grid">
+          <input name="lat" inputmode="decimal" placeholder="Breite">
+          <input name="lng" inputmode="decimal" placeholder="Laenge">
+        </div>
+        <input name="tags" placeholder="Tags, durch Komma getrennt">
+        <textarea name="note" rows="5" placeholder="Notiz"></textarea>
+        <input name="id" type="hidden">
+      </section>
+      <div class="wizard-actions">
+        <button class="secondary" id="cancelEdit" type="button">Abbrechen</button>
+        <button class="primary" id="saveEdit" type="submit">Speichern</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <script type="module">
 import * as THREE from "./assets/three.module.js";
 
@@ -1357,7 +1456,10 @@ const state = {
   toastTimer: 0,
   gallerySelectMode: false,
   selectedGalleryIds: new Set(),
+  journeyTimer: 0,
+  journeyPlaying: false,
   pins: [],
+  pathLines: [],
   raycaster: new THREE.Raycaster(),
   pointer: new THREE.Vector2(),
 };
@@ -1602,6 +1704,7 @@ function connectEvents() {
 
 function render() {
   renderStats();
+  renderChapters();
   renderGallery();
   renderTimeline();
   renderPins();
@@ -1616,6 +1719,36 @@ function renderStats() {
     <span class="stat"><b>${images}</b> Bilder</span>
     <span class="stat"><b>${places}</b> Orte</span>
   `;
+}
+
+function memoryChapters(memories = state.filtered) {
+  const chapters = [
+    { id: "firsts", label: "Erste Male", test: (m) => /erst|anfang|erstes|erst/i.test(`${m.title} ${m.note} ${(m.tags || []).join(" ")}`) },
+    { id: "travel", label: "Reisen", test: (m) => /reise|trip|urlaub|hotel|bahn|flug|meer|belgien|gent|muenster|münster/i.test(`${m.place} ${m.title} ${m.note} ${(m.tags || []).join(" ")}`) },
+    { id: "birthdays", label: "Geburtstage", test: (m) => /geburtstag|birthday/i.test(`${m.title} ${m.note} ${(m.tags || []).join(" ")}`) },
+    { id: "everyday", label: "Alltag", test: () => true },
+  ];
+  return chapters.map((chapter) => ({
+    ...chapter,
+    memories: memories.filter(chapter.test),
+  })).filter((chapter) => chapter.memories.length);
+}
+
+function renderChapters() {
+  const chapters = memoryChapters();
+  if (!chapters.length) {
+    el("chapterList").innerHTML = `<div class="empty">Kapitel entstehen automatisch aus Orten, Tags und Notizen.</div>`;
+    return;
+  }
+  el("chapterList").innerHTML = chapters.map((chapter) => `
+    <button class="chapter-pill" type="button" data-chapter="${chapter.id}">
+      ${escapeHtml(chapter.label)}
+      <span>${chapter.memories.length}</span>
+    </button>
+  `).join("");
+  document.querySelectorAll(".chapter-pill[data-chapter]").forEach((button) => {
+    button.addEventListener("click", () => startChapter(button.dataset.chapter));
+  });
 }
 
 function renderGallery() {
@@ -1838,14 +1971,29 @@ function renderPins() {
     pin.material?.map?.dispose?.();
     pin.material?.dispose?.();
   });
+  state.pathLines.forEach((line) => {
+    globeGroup.remove(line);
+    line.geometry?.dispose?.();
+    line.material?.dispose?.();
+  });
   state.pins = [];
+  state.pathLines = [];
+  const routePoints = [];
   state.filtered.forEach((memory) => {
     const geo = memoryGeo(memory);
     if (geo.approximate) return;
     const marker = createMemoryMarker(memory, geo);
     state.pins.push(marker);
     globeGroup.add(marker);
+    routePoints.push(latLngVector(geo.lat, geo.lng, 2.08));
   });
+  if (routePoints.length > 1) {
+    const geometry = new THREE.BufferGeometry().setFromPoints(routePoints);
+    const material = new THREE.LineBasicMaterial({ color: 0xf4b860, transparent: true, opacity: 0.38 });
+    const line = new THREE.Line(geometry, material);
+    state.pathLines.push(line);
+    globeGroup.add(line);
+  }
 }
 
 function updateHud() {
@@ -1897,7 +2045,8 @@ function showStation(id) {
       <button class="secondary" id="prevMemory" type="button">Zurueck</button>
       <button class="primary" id="nextMemory" type="button">Weiter</button>
       <button class="secondary" id="closeStation" type="button">Welt</button>
-      <button class="secondary danger" id="deleteMemory" type="button">Loeschen</button>
+      <button class="secondary admin-only" id="editMemory" type="button">Bearbeiten</button>
+      <button class="secondary danger admin-only" id="deleteMemory" type="button">Loeschen</button>
     </div>
   `;
   el("stationPanel").classList.add("active");
@@ -1906,6 +2055,7 @@ function showStation(id) {
   el("prevMemory").addEventListener("click", previousMemory);
   el("nextMemory").addEventListener("click", nextMemory);
   el("closeStation").addEventListener("click", closeStation);
+  el("editMemory")?.addEventListener("click", () => openEditModal(memory.id));
   el("deleteMemory").addEventListener("click", () => deleteMemory(memory.id));
   wireImageFallbacks(el("stationPanel"));
 }
@@ -1934,7 +2084,36 @@ function startTour() {
   goToMemory(state.filtered[0].id, { openStation: true });
 }
 
+function playJourney(memories = state.filtered) {
+  const route = memories.filter((memory) => !memoryGeo(memory).approximate);
+  if (!route.length) return;
+  stopJourney();
+  state.journeyPlaying = true;
+  let index = 0;
+  const step = () => {
+    const memory = route[index % route.length];
+    goToMemory(memory.id, { openStation: index > 0 });
+    index += 1;
+    state.journeyTimer = window.setTimeout(step, 5200);
+  };
+  step();
+  showToast("Rundgang spielt automatisch ab.");
+}
+
+function stopJourney() {
+  window.clearTimeout(state.journeyTimer);
+  state.journeyTimer = 0;
+  state.journeyPlaying = false;
+}
+
+function startChapter(chapterId) {
+  const chapter = memoryChapters().find((item) => item.id === chapterId);
+  if (!chapter) return;
+  playJourney(chapter.memories);
+}
+
 function resetWorld() {
+  stopJourney();
   closeStation();
   state.selectedId = null;
   state.tourIndex = -1;
@@ -2086,6 +2265,48 @@ function animate() {
 
 function fieldValue(form, name) {
   return form.querySelector(`[name="${name}"]`)?.value || "";
+}
+
+function normalizeTagList(value) {
+  return String(value || "")
+    .split(",")
+    .map((tag) => tag.trim())
+    .filter(Boolean);
+}
+
+function fillMemoryForm(form, memory) {
+  form.querySelector('[name="id"]').value = memory.id || "";
+  form.querySelector('[name="title"]').value = memory.title || "";
+  form.querySelector('[name="date"]').value = memory.date || "";
+  form.querySelector('[name="type"]').value = memory.type || "photo";
+  form.querySelector('[name="place"]').value = memory.place || "";
+  form.querySelector('[name="lat"]').value = Number.isFinite(memory.lat) ? memory.lat : "";
+  form.querySelector('[name="lng"]').value = Number.isFinite(memory.lng) ? memory.lng : "";
+  form.querySelector('[name="tags"]').value = (memory.tags || []).join(", ");
+  form.querySelector('[name="note"]').value = memory.note || "";
+}
+
+function openEditModal(id) {
+  const memory = state.memories.find((item) => item.id === id);
+  if (!memory) return;
+  fillMemoryForm(el("editForm"), memory);
+  el("editModal").classList.add("active");
+}
+
+function closeEditModal() {
+  el("editModal").classList.remove("active");
+}
+
+async function updateMemoryFromForm(form) {
+  const id = fieldValue(form, "id");
+  const payload = Object.fromEntries(["title", "date", "type", "place", "lat", "lng", "tags", "note"].map((name) => [name, fieldValue(form, name)]));
+  const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) throw new Error(await response.text());
+  return response.json();
 }
 
 async function imagePreviewFile(file, index = 0) {
@@ -2320,6 +2541,7 @@ async function analyzeSelectedFiles() {
     messages.push(`GPS erkannt: ${metadata.lat.toFixed(5)}, ${metadata.lng.toFixed(5)}`);
   }
   if (!fieldValue(form, "title")) form.querySelector('[name="title"]').value = files[0].name.replace(/\.[^.]+$/, "");
+  suggestUploadDetails(form, files, metadata);
   if (messages.length) {
     el("geoStatus").textContent = messages.join(" · ");
     el("geoStatus").classList.add("active");
@@ -2328,6 +2550,23 @@ async function analyzeSelectedFiles() {
     el("geoStatus").classList.add("active");
   }
   setUploadStep(2);
+}
+
+function suggestUploadDetails(form, files, metadata) {
+  const filename = files[0]?.name?.replace(/\.[^.]+$/, "") || "";
+  const place = fieldValue(form, "place");
+  const date = fieldValue(form, "date") || metadata.date || "";
+  const tags = new Set(normalizeTagList(fieldValue(form, "tags")));
+  if (place) tags.add(place.toLowerCase().split(/[,\s]+/)[0]);
+  if (date) tags.add(date.slice(0, 4));
+  if (files.some((file) => isHeicFile(file) || file.type?.startsWith("image/"))) tags.add("foto");
+  if (/geburtstag|birthday/i.test(filename)) tags.add("geburtstag");
+  if (/trip|reise|urlaub|gent|muenster|münster/i.test(`${filename} ${place}`)) tags.add("reise");
+  form.querySelector('[name="tags"]').value = Array.from(tags).filter(Boolean).join(", ");
+  if (!fieldValue(form, "note")) {
+    const hint = [place ? `Moment in ${place}` : "", date ? `am ${fmtDate(date)}` : ""].filter(Boolean).join(" ");
+    form.querySelector('[name="note"]').placeholder = hint || "Was soll hier nicht verloren gehen?";
+  }
 }
 
 async function uploadFormData(form) {
@@ -2347,9 +2586,16 @@ document.querySelectorAll(".tabs button").forEach((button) => {
 });
 
 el("startTour").addEventListener("click", startTour);
+el("playJourney").addEventListener("click", () => playJourney());
 el("resetWorld").addEventListener("click", resetWorld);
+el("giftModeToggle").addEventListener("click", () => {
+  const enabled = !document.body.classList.contains("gift-mode");
+  setGiftMode(enabled);
+});
 el("openUploadFab").addEventListener("click", openUploadModal);
 el("closeUpload").addEventListener("click", closeUploadModal);
+el("closeEdit").addEventListener("click", closeEditModal);
+el("cancelEdit").addEventListener("click", closeEditModal);
 el("panelToggle").addEventListener("click", () => {
   setPanelCollapsed(!document.querySelector(".sidebar").classList.contains("collapsed"));
 });
@@ -2360,6 +2606,19 @@ el("introStart").addEventListener("click", () => {
 });
 if (sessionStorage.getItem("rundgangIntroSeen") === "1") {
   el("intro").classList.add("hidden");
+}
+function setGiftMode(enabled) {
+  document.body.classList.toggle("gift-mode", enabled);
+  el("giftModeToggle").textContent = enabled ? "Adminmodus" : "Geschenkmodus";
+  if (enabled) {
+    closeEditModal();
+    closeUploadModal();
+    clearGallerySelection();
+  }
+  localStorage.setItem("rundgangGiftMode", enabled ? "1" : "0");
+}
+if (new URLSearchParams(location.search).get("gift") === "1" || localStorage.getItem("rundgangGiftMode") === "1") {
+  setGiftMode(true);
 }
 el("wizardBack").addEventListener("click", () => setUploadStep(Math.max(1, uploadStep() - 1)));
 el("wizardNext").addEventListener("click", () => setUploadStep(Math.min(3, uploadStep() + 1)));
@@ -2418,6 +2677,25 @@ el("memoryForm").addEventListener("submit", async (event) => {
   } finally {
     saveButton.disabled = false;
     saveButton.textContent = "Erinnerung speichern";
+  }
+});
+
+el("editForm").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  const saveButton = el("saveEdit");
+  saveButton.disabled = true;
+  saveButton.textContent = "Speichert...";
+  try {
+    const memory = await updateMemoryFromForm(event.currentTarget);
+    closeEditModal();
+    await loadMemories();
+    if (memory?.id) goToMemory(memory.id, { openStation: true });
+    showToast("Erinnerung aktualisiert.");
+  } catch {
+    showToast("Die Erinnerung konnte nicht aktualisiert werden.", "error");
+  } finally {
+    saveButton.disabled = false;
+    saveButton.textContent = "Speichern";
   }
 });
 

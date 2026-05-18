@@ -264,6 +264,39 @@ async function deleteMemory(env, id) {
   return memory;
 }
 
+async function updateMemory(env, id, fields) {
+  const memories = await readMemories(env);
+  const index = memories.findIndex((item) => item.id === id);
+  if (index === -1) return null;
+  const existing = memories[index];
+  const nextPlace = fields.place ?? existing.place ?? "";
+  const hasLat = fields.lat !== undefined && fields.lat !== "";
+  const hasLng = fields.lng !== undefined && fields.lng !== "";
+  const geocoded = (!hasLat || !hasLng) && nextPlace !== existing.place ? await geocodePlace(env, nextPlace) : null;
+  const updated = {
+    ...existing,
+    title: fields.title ?? existing.title,
+    date: normalizeDate(fields.date) || fields.date || existing.date,
+    place: nextPlace,
+    type: fields.type ?? existing.type,
+    note: fields.note ?? existing.note,
+    tags: fields.tags !== undefined ? normalizeTags(fields.tags) : existing.tags,
+    lat: hasLat ? Number(fields.lat) : geocoded?.lat ?? existing.lat,
+    lng: hasLng ? Number(fields.lng) : geocoded?.lng ?? existing.lng,
+    metadata: {
+      ...(existing.metadata || {}),
+      geocoding: geocoded ? {
+        label: geocoded.label,
+        source: geocoded.source,
+      } : existing.metadata?.geocoding || null,
+    },
+    updatedAt: new Date().toISOString(),
+  };
+  memories[index] = updated;
+  await writeMemories(env, memories);
+  return updated;
+}
+
 async function buildMemory(env, fields, files) {
   const now = new Date().toISOString();
   const primaryImage = files.find(isImageFile);
@@ -317,6 +350,13 @@ export async function onRequest(context) {
       const memory = await deleteMemory(env, decodeURIComponent(deleteId));
       if (!memory) return json({ error: "Erinnerung nicht gefunden" }, 404);
       return json({ ok: true, id: memory.id });
+    }
+
+    if (request.method === "PUT" && deleteId) {
+      const fields = await request.json().catch(() => ({}));
+      const memory = await updateMemory(env, decodeURIComponent(deleteId), fields);
+      if (!memory) return json({ error: "Erinnerung nicht gefunden" }, 404);
+      return json(memory);
     }
 
     if (request.method === "POST") {
