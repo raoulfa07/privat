@@ -2626,10 +2626,14 @@ function setGiftMode(enabled) {
     closeUploadModal();
     clearGallerySelection();
   }
-  localStorage.setItem("rundgangGiftMode", enabled ? "1" : "0");
+  sessionStorage.setItem("rundgangGiftMode", enabled ? "1" : "0");
 }
-if (new URLSearchParams(location.search).get("gift") === "1" || localStorage.getItem("rundgangGiftMode") === "1") {
+localStorage.removeItem("rundgangGiftMode");
+const giftParam = new URLSearchParams(location.search).get("gift");
+if (giftParam === "1" || (giftParam !== "0" && sessionStorage.getItem("rundgangGiftMode") === "1")) {
   setGiftMode(true);
+} else {
+  setGiftMode(false);
 }
 el("wizardBack").addEventListener("click", () => setUploadStep(Math.max(1, uploadStep() - 1)));
 el("wizardNext").addEventListener("click", () => setUploadStep(Math.min(3, uploadStep() + 1)));
