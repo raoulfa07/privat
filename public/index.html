@@ -1517,6 +1517,17 @@ function showToast(message, type = "ok") {
   state.toastTimer = window.setTimeout(() => toast.classList.remove("active"), 3600);
 }
 
+async function responseErrorMessage(response) {
+  const text = await response.text().catch(() => "");
+  try {
+    const data = JSON.parse(text);
+    return data.error || data.message || text || `HTTP ${response.status}`;
+  } catch {
+    const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+    return plain.slice(0, 180) || `HTTP ${response.status}`;
+  }
+}
+
 function imageMarkup(file, className, alt) {
   const src = imageUrl(file);
   if (!src) return `<div class="image-missing">Keine Browser-Vorschau verfuegbar</div>`;
@@ -2663,7 +2674,7 @@ el("memoryForm").addEventListener("submit", async (event) => {
   try {
     const data = await uploadFormData(event.currentTarget);
     const response = await fetch("/api/memories", { method: "POST", body: data });
-    if (!response.ok) throw new Error(await response.text());
+    if (!response.ok) throw new Error(await responseErrorMessage(response));
     const memory = await response.json().catch(() => null);
     event.currentTarget.reset();
     el("fileLabel").textContent = "Dateien hier ablegen oder auswaehlen";
@@ -2672,8 +2683,8 @@ el("memoryForm").addEventListener("submit", async (event) => {
     await loadMemories();
     if (memory?.id) goToMemory(memory.id, { openStation: true });
     showToast("Erinnerung gespeichert.");
-  } catch {
-    showToast("Die Erinnerung konnte nicht gespeichert werden.", "error");
+  } catch (error) {
+    showToast(`Speichern fehlgeschlagen: ${error.message}`, "error");
   } finally {
     saveButton.disabled = false;
     saveButton.textContent = "Erinnerung speichern";
