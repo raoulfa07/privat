@@ -21,11 +21,14 @@
     --night: #04060f;
     --parchment: #f4ecd8;
     --parchment-dim: rgba(244, 236, 216, 0.72);
+    --parchment-faint: rgba(244, 236, 216, 0.42);
     --ember: #f4b860;
     --ember-soft: #f7d999;
+    --ember-deep: #e8745c;
     --glass-bg: rgba(8, 12, 28, 0.66);
     --glass-strong: rgba(8, 12, 28, 0.88);
     --glass-border: rgba(244, 236, 216, 0.13);
+    --glass-border-warm: rgba(244, 184, 96, 0.28);
     --shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.72), 0 12px 24px -12px rgba(0, 0, 0, 0.62);
     --radius: 8px;
     --serif: "Cormorant Garamond", Georgia, serif;
@@ -181,7 +184,7 @@
     padding: 14px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
-    background: var(--paper);
+    background: rgba(8, 12, 28, 0.48);
     margin-bottom: 20px;
   }
 
@@ -214,16 +217,58 @@
 
   .ai-answer {
     display: none;
-    padding: 10px;
-    border-radius: var(--radius);
-    color: var(--ink);
-    background: var(--white);
-    border: 1px solid var(--line);
-    font-size: 13px;
-    line-height: 1.4;
+    padding: 18px 20px;
+    border-radius: 16px;
+    color: var(--parchment);
+    background: linear-gradient(135deg, rgba(244, 184, 96, 0.08), rgba(232, 116, 92, 0.05));
+    border: 1px solid var(--glass-border-warm);
+    font-size: 14px;
+    line-height: 1.45;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .ai-answer.active { display: block; }
+
+  .ai-answer-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+    color: var(--ember);
+    font-family: var(--mono);
+    font-size: 10px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+  }
+
+  .ai-answer-text {
+    color: var(--parchment);
+    font-family: var(--serif);
+    font-size: 18px;
+    font-style: italic;
+    line-height: 1.45;
+  }
+
+  .ai-thinking {
+    display: inline-flex;
+    gap: 4px;
+  }
+
+  .ai-thinking span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--ember);
+    animation: thinking 1.4s ease-in-out infinite;
+  }
+
+  .ai-thinking span:nth-child(2) { animation-delay: 0.2s; }
+  .ai-thinking span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes thinking {
+    0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
+    40% { opacity: 1; transform: translateY(-3px); }
+  }
 
   .ai-results {
     display: grid;
@@ -232,17 +277,24 @@
 
   .ai-result {
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr);
-    gap: 9px;
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    gap: 12px;
     align-items: center;
     width: 100%;
     min-height: 54px;
-    padding: 6px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--white);
+    padding: 10px 12px;
+    border: 1px solid transparent;
+    border-radius: 14px;
+    background: transparent;
     color: var(--ink);
     text-align: left;
+    transition: background 0.2s, border-color 0.2s, transform 0.2s;
+  }
+
+  .ai-result:hover {
+    border-color: var(--glass-border-warm);
+    background: rgba(244, 184, 96, 0.06);
+    transform: translateY(-1px);
   }
 
   .ai-result img, .ai-result-fallback {
@@ -256,8 +308,9 @@
   .ai-result-fallback {
     display: grid;
     place-items: center;
-    color: var(--rose);
+    color: var(--ember);
     font-weight: 800;
+    background: linear-gradient(135deg, rgba(244, 184, 96, 0.18), rgba(232, 116, 92, 0.08));
   }
 
   .ai-result strong {
@@ -271,6 +324,15 @@
   .ai-result span {
     color: var(--muted);
     font-size: 12px;
+  }
+
+  .ai-result::after {
+    content: "Öffnen";
+    color: var(--parchment-faint);
+    font-family: var(--mono);
+    font-size: 9px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
   }
 
   .primary, .secondary {
@@ -361,67 +423,98 @@
   .upload-modal {
     position: fixed;
     inset: 0;
-    z-index: 40;
-    display: none;
+    z-index: 60;
+    display: grid;
     place-items: center;
-    padding: 22px;
-    background: rgba(16, 21, 27, 0.62);
+    padding: 24px;
+    background: rgba(4, 6, 15, 0.7);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.4s;
   }
 
-  .upload-modal.active { display: grid; }
+  .upload-modal.active {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
   .upload-panel {
-    width: min(820px, 100%);
+    width: min(700px, 100%);
     max-height: min(88vh, 860px);
     overflow: auto;
-    border-radius: var(--radius);
-    background: var(--glass-strong);
+    border-radius: 28px;
+    background: linear-gradient(180deg, rgba(20, 28, 60, 0.94), rgba(10, 16, 40, 0.96));
     border: 1px solid var(--glass-border);
-    box-shadow: 0 28px 80px rgba(0, 0, 0, 0.32);
+    box-shadow: var(--shadow);
+    transform: translateY(20px) scale(0.97);
+    transition: transform 0.5s cubic-bezier(.2,.8,.2,1);
   }
+
+  .upload-modal.active .upload-panel { transform: translateY(0) scale(1); }
 
   .upload-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 16px;
-    padding: 22px 24px 16px;
-    border-bottom: 1px solid var(--line);
+    padding: 34px 36px 12px;
   }
 
-  .upload-head h2 { margin: 0 0 4px; font-size: 24px; }
-  .upload-head p { margin: 0; color: var(--muted); }
+  .upload-head h2 {
+    margin: 0 0 8px;
+    font-family: var(--serif);
+    font-size: 38px;
+    font-weight: 300;
+    line-height: 1.05;
+  }
+
+  .upload-head p {
+    margin: 0;
+    color: var(--parchment-dim);
+    font-family: var(--serif);
+    font-size: 17px;
+    font-style: italic;
+  }
 
   .wizard-steps {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 8px;
-    padding: 16px 24px 0;
+    margin: 8px 36px 0;
+    padding: 4px;
+    border: 1px solid var(--glass-border);
+    border-radius: 14px;
+    background: rgba(4, 6, 15, 0.4);
   }
 
   .wizard-step {
-    padding: 8px 10px;
-    border-radius: 999px;
+    padding: 10px 12px;
+    border-radius: 10px;
     color: var(--muted);
-    background: var(--soft);
+    background: transparent;
     text-align: center;
-    font-size: 13px;
+    font-size: 12.5px;
+    font-weight: 600;
   }
 
   .wizard-step.active {
-    color: white;
-    background: var(--aqua);
+    color: var(--ember-soft);
+    background: linear-gradient(135deg, rgba(244, 184, 96, 0.16), rgba(232, 116, 92, 0.08));
+    box-shadow: inset 0 0 0 1px var(--glass-border-warm);
   }
 
-  .wizard-page { display: none; padding: 20px 24px 24px; }
+  .wizard-page { display: none; padding: 22px 36px 20px; }
   .wizard-page.active { display: grid; gap: 12px; }
 
   .geo-status {
     display: none;
     padding: 11px 12px;
     border-radius: var(--radius);
-    color: #31564a;
-    background: rgba(96, 120, 72, 0.14);
+    color: var(--parchment);
+    background: linear-gradient(135deg, rgba(244, 184, 96, 0.08), rgba(232, 116, 92, 0.04));
+    border: 1px solid var(--glass-border-warm);
     line-height: 1.35;
   }
 
@@ -431,8 +524,50 @@
     display: flex;
     justify-content: space-between;
     gap: 10px;
-    padding: 16px 24px 24px;
-    border-top: 1px solid var(--line);
+    padding: 16px 36px 34px;
+  }
+
+  .upload-fab {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 24;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 52px;
+    padding: 14px 22px 14px 16px;
+    border: 0;
+    border-radius: 999px;
+    color: var(--night);
+    background: linear-gradient(135deg, var(--ember) 0%, var(--ember-deep) 100%);
+    box-shadow:
+      0 14px 40px -10px rgba(244, 184, 96, 0.44),
+      0 0 0 1px rgba(244, 184, 96, 0.3),
+      inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    font-weight: 700;
+    font-size: 13.5px;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .upload-fab:hover {
+    transform: translateY(-2px);
+    box-shadow:
+      0 18px 48px -10px rgba(244, 184, 96, 0.52),
+      0 0 0 1px rgba(244, 184, 96, 0.42),
+      inset 0 1px 0 rgba(255, 255, 255, 0.32);
+  }
+
+  .upload-fab .fab-icon {
+    display: grid;
+    place-items: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    background: rgba(4, 6, 15, 0.16);
+    font-size: 22px;
+    font-weight: 400;
+    line-height: 1;
   }
 
   .main { min-width: 0; padding: 28px; }
@@ -906,6 +1041,18 @@
     .station { left: 20px; top: 150px; width: calc(100% - 40px); }
     .station-actions { grid-template-columns: 1fr; }
     .panel-toggle { display: none; }
+    .upload-fab {
+      right: 18px;
+      bottom: 18px;
+      min-height: 48px;
+      padding: 12px 16px;
+    }
+    .upload-fab span:last-child { display: none; }
+    .upload-panel { border-radius: 22px; }
+    .upload-head,
+    .wizard-page,
+    .wizard-actions { padding-left: 22px; padding-right: 22px; }
+    .wizard-steps { margin-left: 22px; margin-right: 22px; }
   }
 </style>
 </head>
@@ -949,7 +1096,6 @@
     <div class="tour-controls">
       <button class="primary" id="startTour" type="button">Rundgang starten</button>
       <button class="secondary" id="resetWorld" type="button">Zur Weltkugel</button>
-      <button class="secondary" id="openUpload" type="button">Erinnerung hinzufügen</button>
     </div>
 
     <section class="ai-panel" aria-label="KI-Suche">
@@ -1000,6 +1146,11 @@
   </main>
 </div>
 
+<button class="upload-fab" id="openUploadFab" type="button" aria-label="Neue Erinnerung hinzufügen">
+  <span class="fab-icon">+</span>
+  <span>Erinnerung hinzufügen</span>
+</button>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div class="upload-modal" id="uploadModal">
@@ -1009,7 +1160,7 @@
         <h2>Neue Erinnerung</h2>
         <p>Ich führe dich durch Upload, Metadaten und Einordnung.</p>
       </div>
-      <button class="secondary" id="closeUpload" type="button">Schliessen</button>
+      <button class="secondary" id="closeUpload" type="button">Schließen</button>
     </div>
 
     <div class="wizard-steps">
@@ -1414,7 +1565,10 @@ async function askAi(question) {
   if (state.aiBusy) return;
   state.aiBusy = true;
   el("aiAnswer").classList.add("active");
-  el("aiAnswer").textContent = "Ich suche in euren Erinnerungen...";
+  el("aiAnswer").innerHTML = `
+    <div class="ai-answer-label">KI denkt</div>
+    <div class="ai-answer-text"><span class="ai-thinking"><span></span><span></span><span></span></span></div>
+  `;
   el("aiResults").innerHTML = "";
 
   try {
@@ -1426,11 +1580,17 @@ async function askAi(question) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Die KI-Suche ist gerade nicht erreichbar.");
     const source = data.source === "gemini" ? "Gemini" : "lokale Suche";
-    el("aiAnswer").textContent = `${data.answer} (${source})`;
+    el("aiAnswer").innerHTML = `
+      <div class="ai-answer-label">KI Antwort · ${escapeHtml(source)}</div>
+      <div class="ai-answer-text">${escapeHtml(data.answer)}</div>
+    `;
     renderAiResults(data.memories || []);
     if (data.memories?.[0]?.id) goToMemory(data.memories[0].id);
   } catch (error) {
-    el("aiAnswer").textContent = error.message;
+    el("aiAnswer").innerHTML = `
+      <div class="ai-answer-label">KI Antwort</div>
+      <div class="ai-answer-text">${escapeHtml(error.message)}</div>
+    `;
   } finally {
     state.aiBusy = false;
   }
@@ -1962,7 +2122,7 @@ document.querySelectorAll(".tabs button").forEach((button) => {
 
 el("startTour").addEventListener("click", startTour);
 el("resetWorld").addEventListener("click", resetWorld);
-el("openUpload").addEventListener("click", openUploadModal);
+el("openUploadFab").addEventListener("click", openUploadModal);
 el("closeUpload").addEventListener("click", closeUploadModal);
 el("panelToggle").addEventListener("click", () => {
   setPanelCollapsed(!document.querySelector(".sidebar").classList.contains("collapsed"));
