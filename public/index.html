@@ -181,23 +181,29 @@
   .ai-panel {
     display: grid;
     gap: 10px;
-    padding: 14px;
-    border: 1px solid var(--line);
+    padding: 16px;
+    border: 1px solid rgba(244, 236, 216, 0.14);
     border-radius: var(--radius);
-    background: rgba(8, 12, 28, 0.48);
+    background: linear-gradient(180deg, rgba(8, 12, 28, 0.78), rgba(8, 12, 28, 0.58));
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(18px);
     margin-bottom: 20px;
   }
 
   .ai-panel h2 {
     margin: 0;
-    font-size: 16px;
+    color: var(--parchment);
+    font-family: var(--serif);
+    font-size: 24px;
+    font-weight: 400;
+    line-height: 1;
   }
 
   .ai-panel p {
     margin: 0;
-    color: var(--muted);
+    color: var(--parchment-dim);
     font-size: 13px;
-    line-height: 1.35;
+    line-height: 1.45;
   }
 
   .ai-form {
@@ -210,17 +216,34 @@
     min-height: 42px;
     border: 0;
     border-radius: var(--radius);
-    color: white;
-    background: var(--rose);
+    color: var(--night);
+    background: linear-gradient(135deg, var(--ember), var(--ember-deep));
     font-weight: 800;
+  }
+
+  .ai-form input {
+    border-color: rgba(244, 236, 216, 0.18);
+    background: rgba(4, 6, 15, 0.54);
+    color: var(--parchment);
+  }
+
+  .ai-form input::placeholder { color: var(--parchment-faint); }
+
+  .ai-form input:focus {
+    border-color: var(--glass-border-warm);
+    box-shadow: 0 0 0 3px rgba(244, 184, 96, 0.12);
   }
 
   .ai-answer {
     display: none;
-    padding: 18px 20px;
+    max-height: 250px;
+    overflow: auto;
+    padding: 16px 18px;
     border-radius: 16px;
     color: var(--parchment);
-    background: linear-gradient(135deg, rgba(244, 184, 96, 0.08), rgba(232, 116, 92, 0.05));
+    background:
+      linear-gradient(135deg, rgba(244, 184, 96, 0.08), rgba(232, 116, 92, 0.04)),
+      rgba(4, 6, 15, 0.48);
     border: 1px solid var(--glass-border-warm);
     font-size: 14px;
     line-height: 1.45;
@@ -244,9 +267,9 @@
   .ai-answer-text {
     color: var(--parchment);
     font-family: var(--serif);
-    font-size: 18px;
+    font-size: 16.5px;
     font-style: italic;
-    line-height: 1.45;
+    line-height: 1.52;
   }
 
   .ai-thinking {
@@ -273,6 +296,8 @@
   .ai-results {
     display: grid;
     gap: 7px;
+    max-height: 220px;
+    overflow: auto;
   }
 
   .ai-result {
@@ -286,7 +311,7 @@
     border: 1px solid transparent;
     border-radius: 14px;
     background: transparent;
-    color: var(--ink);
+    color: var(--parchment);
     text-align: left;
     transition: background 0.2s, border-color 0.2s, transform 0.2s;
   }
@@ -319,6 +344,7 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 13px;
+    color: var(--parchment);
   }
 
   .ai-result span {
@@ -973,7 +999,7 @@
 
     .ai-panel {
       margin-bottom: 0;
-      background: rgba(251, 248, 241, 0.7);
+      background: linear-gradient(180deg, rgba(8, 12, 28, 0.82), rgba(8, 12, 28, 0.62));
     }
 
     .main {
