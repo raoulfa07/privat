@@ -52,6 +52,18 @@ Damit Uploads und Loeschen funktionieren, muessen im Cloudflare Pages Projekt di
 
 Ohne diese Bindings kann Cloudflare zwar die statische Seite anzeigen, aber neue Erinnerungen koennen nicht gespeichert werden.
 
+## ALL-INKL Deployment
+
+Fuer klassischen Webspace gibt es eine PHP/MySQL-Version im Ordner `all-inkl/`.
+
+```bash
+npm run build:all-inkl
+```
+
+Danach den Inhalt von `dist/all-inkl/` per SFTP/FTP auf den Webspace laden, `all-inkl/schema.sql` in MySQL importieren und auf dem Server `private/config.example.php` zu `private/config.php` kopieren und ausfuellen.
+
+Details stehen in `all-inkl/README-ALL-INKL.md`.
+
 ## Netlify-Deployment
 
 Das Projekt ist fuer Netlify vorbereitet:

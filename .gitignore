@@ -9,3 +9,9 @@ public/uploads/
 
 # Netlify local state.
 .netlify/
+
+# Build output
+dist/
+
+# ALL-INKL private config
+all-inkl/private/config.php

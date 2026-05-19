@@ -1,0 +1,6 @@
+RewriteEngine On
+
+RewriteRule ^api/memories/([^/]+)$ api/memories.php/$1 [L,QSA]
+RewriteRule ^api/memories$ api/memories.php [L,QSA]
+RewriteRule ^api/ai-search$ api/ai-search.php [L,QSA]
+RewriteRule ^api/health$ api/health.php [L,QSA]

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "node index.js",
-    "netlify:dev": "netlify dev"
+    "netlify:dev": "netlify dev",
+    "build:all-inkl": "bash scripts/build-all-inkl.sh"
   },
   "dependencies": {
     "@netlify/blobs": "^9.1.0"
