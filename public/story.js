@@ -36,6 +36,7 @@ let storyProgress = readStoryProgress();
 let groceryItems = [];
 let householdItems = [];
 let homeEvents = null;
+let homeRetryTimer = null;
 let stampTimer;
 const roomData = {
   kitchen: {
@@ -292,7 +293,10 @@ function connectHomeEvents() {
     setHomeState(JSON.parse(event.data));
   });
   homeEvents.addEventListener("error", () => {
-    showStamp("Pinnwand verbindet neu", "Einträge bleiben erhalten");
+    homeEvents.close();
+    homeEvents = null;
+    window.clearTimeout(homeRetryTimer);
+    homeRetryTimer = window.setTimeout(loadHome, 5000);
   });
 }
 
