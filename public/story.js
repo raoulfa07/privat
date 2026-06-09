@@ -786,7 +786,7 @@ function dailyMemoryPick() {
   }
 
   const throwbacks = dated
-    .filter((item) => Date.now() - galleryTimestamp(item, "takenAt") >= 14 * 86400000)
+    .filter((item) => Date.now() - galleryTimestamp(item, "takenAt") >= 2 * 86400000)
     .sort((a, b) => String(a.id).localeCompare(String(b.id)));
   if (!throwbacks.length) return null;
 
