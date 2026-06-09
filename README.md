@@ -34,6 +34,17 @@ gelöschte Einträge erscheinen dadurch ohne Neuladen auf dem zweiten Gerät.
 Wird die Seite öffentlich ins Internet gestellt, kann jeder mit der URL die
 Pinnwand sehen und bearbeiten.
 
+### Fotowand
+
+Die Fotowand unterstützt mehrere Bilder pro Upload. Aufnahmezeit und
+GPS-Koordinaten werden, sofern vorhanden, direkt aus den EXIF-Daten gelesen.
+GPS-Koordinaten werden serverseitig über OpenStreetMap Nominatim in einen
+Ortsnamen übersetzt. Datum, Ort und Beschreibung bleiben anschließend
+bearbeitbar.
+
+Messenger und soziale Netzwerke entfernen EXIF-Daten häufig. In diesem Fall
+verwendet die App das Dateidatum und lässt den Ort offen.
+
 ## Vercel Deployment
 
 Das Repository ist fuer Vercel vorbereitet:

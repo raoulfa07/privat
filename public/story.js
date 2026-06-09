@@ -21,22 +21,32 @@ const roomExtra = document.querySelector(".room-extra");
 const memoryDialog = document.querySelector(".memory-dialog");
 const groceryDialog = document.querySelector(".grocery-dialog");
 const householdDialog = document.querySelector(".household-dialog");
+const galleryDialog = document.querySelector(".gallery-dialog");
 const groceryForm = document.querySelector(".grocery-form");
 const householdForm = document.querySelector(".household-form");
+const galleryForm = document.querySelector(".gallery-form");
 const groceryList = document.querySelector(".grocery-list");
 const householdList = document.querySelector(".household-list");
+const galleryList = document.querySelector(".gallery-list");
 const groceryCount = document.querySelector(".grocery-open-count");
 const householdCount = document.querySelector(".household-open-count");
+const galleryCount = document.querySelector(".gallery-count");
 const photoInput = householdForm.querySelector('input[name="photo"]');
 const photoPreview = householdForm.querySelector(".photo-preview");
 const householdSubmit = householdForm.querySelector('button[type="submit"]');
 const householdFormStatus = householdForm.querySelector(".household-form-status");
+const galleryInput = galleryForm.querySelector('input[name="photos"]');
+const galleryPreview = galleryForm.querySelector(".gallery-preview");
+const gallerySubmit = galleryForm.querySelector('button[type="submit"]');
+const galleryFormStatus = galleryForm.querySelector(".gallery-form-status");
+const gallerySort = galleryDialog.querySelector(".gallery-sort");
 
 let current = 0;
 let shownMessages = 1;
 let storyProgress = readStoryProgress();
 let groceryItems = [];
 let householdItems = [];
+let galleryItems = [];
 let homeEvents = null;
 let homeRetryTimer = null;
 let stampTimer;
@@ -273,8 +283,10 @@ async function runHomeAction(action) {
 function setHomeState(home) {
   groceryItems = Array.isArray(home.grocery) ? home.grocery : [];
   householdItems = Array.isArray(home.household) ? home.household : [];
+  galleryItems = Array.isArray(home.gallery) ? home.gallery : [];
   renderGroceryItems();
   renderHouseholdItems();
+  renderGalleryItems();
 }
 
 async function loadHome() {
@@ -311,7 +323,12 @@ function connectHomeEvents() {
 
 async function openTool(tool) {
   await loadHome();
-  const dialog = tool === "grocery" ? groceryDialog : householdDialog;
+  const dialog = {
+    grocery: groceryDialog,
+    household: householdDialog,
+    gallery: galleryDialog,
+  }[tool];
+  if (!dialog) return;
   dialog.showModal();
 }
 
@@ -473,6 +490,115 @@ function renderHouseholdItems() {
   });
 }
 
+function galleryTimestamp(item, field) {
+  const value = Date.parse(item[field] || "");
+  return Number.isFinite(value) ? value : 0;
+}
+
+function toDateTimeLocal(value) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return local.toISOString().slice(0, 16);
+}
+
+function renderGalleryItems() {
+  galleryList.replaceChildren();
+  galleryCount.textContent = galleryItems.length;
+
+  if (!galleryItems.length) {
+    galleryList.append(createEmptyState("Noch ist die Fotowand leer. Das erste gemeinsame Erlebnis wartet schon."));
+    return;
+  }
+
+  const items = [...galleryItems].sort((a, b) => {
+    if (gallerySort.value === "oldest") return galleryTimestamp(a, "takenAt") - galleryTimestamp(b, "takenAt");
+    if (gallerySort.value === "place") return String(a.location || "").localeCompare(String(b.location || ""), "de");
+    if (gallerySort.value === "uploaded") return galleryTimestamp(b, "createdAt") - galleryTimestamp(a, "createdAt");
+    return galleryTimestamp(b, "takenAt") - galleryTimestamp(a, "takenAt");
+  });
+
+  items.forEach((item) => {
+    const card = document.createElement("article");
+    card.className = "gallery-card";
+
+    const image = document.createElement("img");
+    image.src = item.photo;
+    image.alt = item.caption || `Erinnerungsfoto${item.location ? ` aus ${item.location}` : ""}`;
+    image.loading = "lazy";
+
+    const fields = document.createElement("div");
+    fields.className = "gallery-card-fields";
+    const captionLabel = document.createElement("label");
+    captionLabel.textContent = "Erlebnis";
+    const caption = document.createElement("input");
+    caption.maxLength = 140;
+    caption.value = item.caption || "";
+    caption.placeholder = "Was war das für ein Moment?";
+    captionLabel.append(caption);
+
+    const dateLabel = document.createElement("label");
+    dateLabel.textContent = "Aufgenommen";
+    const takenAt = document.createElement("input");
+    takenAt.type = "datetime-local";
+    takenAt.value = toDateTimeLocal(item.takenAt);
+    dateLabel.append(takenAt);
+
+    const placeLabel = document.createElement("label");
+    placeLabel.textContent = "Ort";
+    const location = document.createElement("input");
+    location.maxLength = 100;
+    location.value = item.location || "";
+    location.placeholder = "Ort ergänzen";
+    placeLabel.append(location);
+    fields.append(captionLabel, dateLabel, placeLabel);
+
+    const meta = document.createElement("div");
+    meta.className = "gallery-card-meta";
+    meta.textContent = item.metadataSource === "exif"
+      ? "Datum und Ort aus den Fotodaten gelesen."
+      : "Metadaten unvollständig – du kannst sie oben ergänzen.";
+
+    const actions = document.createElement("div");
+    actions.className = "gallery-card-actions";
+    const save = document.createElement("button");
+    save.type = "button";
+    save.className = "gallery-save";
+    save.textContent = "Angaben speichern";
+    save.addEventListener("click", () => runHomeAction(async () => {
+      const updated = await apiRequest(`/api/home/gallery/${encodeURIComponent(item.id)}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          item,
+          caption: caption.value.trim(),
+          location: location.value.trim(),
+          takenAt: takenAt.value ? new Date(takenAt.value).toISOString() : "",
+        }),
+      });
+      galleryItems = galleryItems.map((entry) => entry.id === updated.id ? updated : entry);
+      renderGalleryItems();
+      showStamp("Fotowand aktualisiert", updated.location || "Moment gespeichert");
+    }));
+
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "gallery-delete";
+    remove.textContent = "Löschen";
+    remove.addEventListener("click", () => runHomeAction(async () => {
+      await apiRequest(`/api/home/gallery/${encodeURIComponent(item.id)}`, {
+        method: "DELETE",
+        body: JSON.stringify({ photo: item.photo }),
+      });
+      galleryItems = galleryItems.filter((entry) => entry.id !== item.id);
+      renderGalleryItems();
+    }));
+
+    actions.append(save, remove);
+    card.append(image, fields, meta, actions);
+    galleryList.append(card);
+  });
+}
+
 document.querySelectorAll("[data-open-tool]").forEach((button) => {
   button.addEventListener("click", () => openTool(button.dataset.openTool));
 });
@@ -481,11 +607,13 @@ document.querySelectorAll(".tool-dialog .tool-close").forEach((button) => {
   button.addEventListener("click", () => button.closest("dialog").close());
 });
 
-[groceryDialog, householdDialog].forEach((dialog) => {
+[groceryDialog, householdDialog, galleryDialog].forEach((dialog) => {
   dialog.addEventListener("click", (event) => {
     if (event.target === dialog) dialog.close();
   });
 });
+
+gallerySort.addEventListener("change", renderGalleryItems);
 
 groceryForm.addEventListener("submit", async (event) => {
   event.preventDefault();
@@ -522,17 +650,51 @@ photoInput.addEventListener("change", () => {
 async function compressPhoto(file) {
   if (!file || file.size <= 1.5 * 1024 * 1024) return file;
 
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
-  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
-  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+    canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+    canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
 
-  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.78));
-  if (!blob) throw new Error("Das Foto konnte nicht vorbereitet werden.");
-  return new File([blob], "beweisfoto.jpg", { type: "image/jpeg" });
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.78));
+    if (!blob) throw new Error("Keine Bildausgabe");
+    return new File([blob], "beweisfoto.jpg", { type: "image/jpeg" });
+  } catch {
+    if (file.size <= 3.8 * 1024 * 1024) return file;
+    throw new Error("Dieses Foto ist zu groß. Bitte wähle eine kleinere Version.");
+  }
+}
+
+async function readPhotoMetadata(file) {
+  let metadata = {};
+  try {
+    metadata = await window.exifr.parse(file, {
+      tiff: true,
+      exif: true,
+      gps: true,
+      xmp: true,
+      iptc: true,
+    }) || {};
+  } catch {
+    // Messenger exports and edited images often contain no readable EXIF data.
+  }
+
+  const date = metadata.DateTimeOriginal || metadata.CreateDate || metadata.DateCreated || metadata.ModifyDate;
+  const takenAt = date instanceof Date && !Number.isNaN(date.getTime())
+    ? date.toISOString()
+    : new Date(file.lastModified || Date.now()).toISOString();
+  const latitude = Number(metadata.latitude);
+  const longitude = Number(metadata.longitude);
+
+  return {
+    takenAt,
+    latitude: Number.isFinite(latitude) ? latitude : "",
+    longitude: Number.isFinite(longitude) ? longitude : "",
+    metadataSource: date || Number.isFinite(latitude) ? "exif" : "file",
+  };
 }
 
 householdForm.addEventListener("submit", async (event) => {
@@ -565,6 +727,54 @@ householdForm.addEventListener("submit", async (event) => {
   } finally {
     householdSubmit.disabled = false;
     householdSubmit.firstChild.textContent = "Fundstück melden ";
+  }
+});
+
+galleryInput.addEventListener("change", () => {
+  const count = galleryInput.files?.length || 0;
+  galleryPreview.innerHTML = count
+    ? `<b>✓</b> ${count} Foto${count === 1 ? "" : "s"} ausgewählt`
+    : "<b>＋</b> Fotos auswählen";
+});
+
+galleryForm.addEventListener("submit", async (event) => {
+  event.preventDefault();
+  if (gallerySubmit.disabled) return;
+
+  const files = [...(galleryInput.files || [])];
+  if (!files.length) return;
+  const caption = String(new FormData(galleryForm).get("caption") || "").trim();
+  gallerySubmit.disabled = true;
+  galleryFormStatus.classList.remove("is-error");
+
+  try {
+    for (let index = 0; index < files.length; index += 1) {
+      galleryFormStatus.textContent = `Foto ${index + 1} von ${files.length} wird vorbereitet …`;
+      const metadata = await readPhotoMetadata(files[index]);
+      const photo = await compressPhoto(files[index]);
+      const data = new FormData();
+      data.set("photo", photo, photo.name || files[index].name);
+      data.set("caption", caption);
+      data.set("takenAt", metadata.takenAt);
+      data.set("latitude", metadata.latitude);
+      data.set("longitude", metadata.longitude);
+      data.set("metadataSource", metadata.metadataSource);
+      data.set("originalName", files[index].name);
+
+      const item = await apiRequest("/api/home/gallery", { method: "POST", body: data });
+      galleryItems = [item, ...galleryItems.filter((entry) => entry.id !== item.id)];
+      renderGalleryItems();
+    }
+
+    galleryForm.reset();
+    galleryPreview.innerHTML = "<b>＋</b> Fotos auswählen";
+    galleryFormStatus.textContent = `${files.length} Foto${files.length === 1 ? "" : "s"} an die Wand gehängt.`;
+    showStamp("Fotowand erweitert", `${files.length} neue Erinnerung${files.length === 1 ? "" : "en"}`);
+  } catch (error) {
+    galleryFormStatus.textContent = error.message || "Die Fotos konnten nicht hochgeladen werden.";
+    galleryFormStatus.classList.add("is-error");
+  } finally {
+    gallerySubmit.disabled = false;
   }
 });
 
@@ -732,6 +942,7 @@ const hashChapter = location.hash.slice(1);
 renderPoints();
 renderGroceryItems();
 renderHouseholdItems();
+renderGalleryItems();
 migrateLocalItems().catch(() => {
   showStamp("Alte Pinnwand bleibt lokal", "Neue Einträge funktionieren trotzdem");
 }).finally(loadHome);

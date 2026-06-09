@@ -501,6 +501,7 @@ body:has(.chapter-home.is-active) { --stage: #1f3029; --surface: var(--cream); -
   line-height: 1.45;
 }
 .live-tool-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.gallery-tool { grid-column: 1 / -1; }
 .live-tool {
   min-width: 0;
   min-height: 132px;
@@ -1068,6 +1069,100 @@ body:has(.chapter-home.is-active) { --stage: #1f3029; --surface: var(--cream); -
   background: var(--forest);
   font-size: 10px;
   font-weight: 700;
+}
+
+.gallery-dialog { width: min(760px, calc(100% - 20px)); }
+.gallery-picker .photo-preview { min-height: 105px; }
+.gallery-toolbar {
+  margin: 17px 0 10px;
+  display: flex;
+  justify-content: flex-end;
+}
+.gallery-toolbar label {
+  width: min(220px, 100%);
+  display: grid;
+  gap: 5px;
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .05em;
+}
+.gallery-toolbar select {
+  height: 40px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--ink);
+  background: var(--paper);
+  font: 11px var(--sans);
+}
+.gallery-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+}
+.gallery-list .tool-empty { grid-column: 1 / -1; }
+.gallery-card {
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 17px;
+  background: var(--paper);
+}
+.gallery-card > img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  display: block;
+  object-fit: cover;
+  background: rgba(37, 35, 33, .05);
+}
+.gallery-card-fields {
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+.gallery-card-fields label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: .05em;
+}
+.gallery-card-fields input {
+  width: 100%;
+  height: 38px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  color: var(--ink);
+  background: var(--cream);
+  font: 11px var(--sans);
+}
+.gallery-card-meta {
+  padding: 0 12px 11px;
+  color: var(--muted);
+  font-size: 9px;
+  line-height: 1.4;
+}
+.gallery-card-actions {
+  padding: 0 12px 12px;
+  display: flex;
+  gap: 7px;
+}
+.gallery-save,
+.gallery-delete {
+  min-height: 35px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 9px;
+  font-size: 9px;
+  font-weight: 700;
+}
+.gallery-save { flex: 1; color: #fff; background: var(--forest); }
+.gallery-delete { color: var(--bordeaux); background: rgba(122, 62, 71, .09); }
+
+@media (max-width: 560px) {
+  .gallery-list { grid-template-columns: 1fr; }
 }
 
 .award-stamp {

@@ -58,7 +58,7 @@ function ensureStorage() {
   fs.mkdirSync(homeUploadDir, { recursive: true });
   if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify(seedMemories, null, 2));
   if (!fs.existsSync(homeDbPath)) {
-    fs.writeFileSync(homeDbPath, JSON.stringify({ grocery: [], household: [], updatedAt: new Date().toISOString() }, null, 2));
+    fs.writeFileSync(homeDbPath, JSON.stringify({ grocery: [], household: [], gallery: [], updatedAt: new Date().toISOString() }, null, 2));
   }
 }
 
@@ -77,6 +77,7 @@ function readHome() {
   return {
     grocery: Array.isArray(value.grocery) ? value.grocery : [],
     household: Array.isArray(value.household) ? value.household : [],
+    gallery: Array.isArray(value.gallery) ? value.gallery : [],
     updatedAt: value.updatedAt || new Date().toISOString(),
   };
 }
@@ -130,6 +131,33 @@ function moveFileToHome(file) {
   const targetPath = path.join(homeUploadDir, filename);
   fs.renameSync(sourcePath, targetPath);
   return `/uploads/home/${filename}`;
+}
+
+async function reverseGeocodeHome(latitude, longitude) {
+  if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return "";
+  try {
+    const url = new URL("https://nominatim.openstreetmap.org/reverse");
+    url.searchParams.set("format", "jsonv2");
+    url.searchParams.set("lat", latitude);
+    url.searchParams.set("lon", longitude);
+    url.searchParams.set("zoom", "12");
+    url.searchParams.set("accept-language", "de");
+    const response = await fetch(url, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "charleen-raoul-fotowand/1.0",
+      },
+    });
+    if (!response.ok) return "";
+    const result = await response.json();
+    const address = result.address || {};
+    return sanitizeHomeItem(
+      address.city || address.town || address.village || address.municipality || address.county || result.display_name,
+      100,
+    );
+  } catch {
+    return "";
+  }
 }
 
 function collectBody(req, limit = 80 * 1024 * 1024) {
@@ -697,6 +725,65 @@ const server = http.createServer(async (req, res) => {
       if (!item) return sendJson(res, 404, { error: "Fundstück nicht gefunden." });
       deleteHomeUpload(item.photo);
       home.household = home.household.filter((entry) => entry.id !== id);
+      writeHome(home);
+      return sendJson(res, 200, { ok: true });
+    }
+
+    if (url.pathname === "/api/home/gallery" && req.method === "POST") {
+      const body = await collectBody(req, 12 * 1024 * 1024);
+      const { fields, files } = parseMultipart(body, req.headers["content-type"] || "");
+      const photo = files.find((file) => file.fieldName === "photo");
+      if (!photo) return sendJson(res, 400, { error: "Bitte ein Foto auswählen." });
+
+      const latitudeValue = sanitizeHomeItem(fields.latitude, 30);
+      const longitudeValue = sanitizeHomeItem(fields.longitude, 30);
+      const latitude = Number(latitudeValue);
+      const longitude = Number(longitudeValue);
+      const hasCoordinates = Boolean(latitudeValue && longitudeValue)
+        && Number.isFinite(latitude) && Number.isFinite(longitude)
+        && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
+      const parsedDate = new Date(sanitizeHomeItem(fields.takenAt, 40));
+      const location = hasCoordinates ? await reverseGeocodeHome(latitude, longitude) : "";
+      const home = readHome();
+      const item = {
+        id: `gallery-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
+        photo: moveFileToHome(photo),
+        caption: sanitizeHomeItem(fields.caption, 140),
+        takenAt: Number.isNaN(parsedDate.getTime()) ? "" : parsedDate.toISOString(),
+        location: location || (hasCoordinates ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` : ""),
+        latitude: hasCoordinates ? latitude : null,
+        longitude: hasCoordinates ? longitude : null,
+        metadataSource: sanitizeHomeItem(fields.metadataSource, 20) || "file",
+        originalName: sanitizeHomeItem(fields.originalName, 140),
+        createdAt: new Date().toISOString(),
+      };
+      home.gallery.unshift(item);
+      writeHome(home);
+      return sendJson(res, 201, item);
+    }
+
+    const galleryMatch = url.pathname.match(/^\/api\/home\/gallery\/([^/]+)$/);
+    if (galleryMatch && req.method === "PATCH") {
+      const body = await collectBody(req, 256 * 1024);
+      const payload = body.length ? JSON.parse(body.toString("utf8")) : {};
+      const home = readHome();
+      const item = home.gallery.find((entry) => entry.id === decodeURIComponent(galleryMatch[1]));
+      if (!item) return sendJson(res, 404, { error: "Foto nicht gefunden." });
+      const parsedDate = new Date(payload.takenAt || "");
+      item.caption = sanitizeHomeItem(payload.caption, 140);
+      item.location = sanitizeHomeItem(payload.location, 100);
+      if (!Number.isNaN(parsedDate.getTime())) item.takenAt = parsedDate.toISOString();
+      writeHome(home);
+      return sendJson(res, 200, item);
+    }
+
+    if (galleryMatch && req.method === "DELETE") {
+      const home = readHome();
+      const id = decodeURIComponent(galleryMatch[1]);
+      const item = home.gallery.find((entry) => entry.id === id);
+      if (!item) return sendJson(res, 404, { error: "Foto nicht gefunden." });
+      deleteHomeUpload(item.photo);
+      home.gallery = home.gallery.filter((entry) => entry.id !== id);
       writeHome(home);
       return sendJson(res, 200, { ok: true });
     }

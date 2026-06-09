@@ -10,7 +10,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="./story.css?v=20260609-2">
-  <script src="./story.js?v=20260609-2" defer></script>
+  <script src="./vendor/exifr.umd.js?v=7.1.3" defer></script>
+  <script src="./story.js?v=20260609-3" defer></script>
 </head>
 <body>
   <main class="story-shell">
@@ -347,6 +348,14 @@
               </span>
               <i aria-hidden="true">melden →</i>
             </button>
+            <button class="live-tool gallery-tool" type="button" data-open-tool="gallery">
+              <span class="live-tool-icon" aria-hidden="true">▧</span>
+              <span>
+                <strong>Unsere Fotowand</strong>
+                <small><b class="gallery-count">0</b> Erlebnisse gesammelt</small>
+              </span>
+              <i aria-hidden="true">ansehen →</i>
+            </button>
           </div>
         </section>
 
@@ -497,6 +506,37 @@
       <p class="form-status household-form-status" role="status" aria-live="polite"></p>
     </form>
     <div class="tool-list household-list" aria-live="polite"></div>
+  </dialog>
+
+  <dialog class="tool-dialog gallery-dialog">
+    <button class="dialog-close tool-close" type="button" aria-label="Fotowand schließen">×</button>
+    <p class="eyebrow">Erlebnisse, die bleiben dürfen</p>
+    <h2>Unsere Fotowand</h2>
+    <p class="tool-lede">Fotos hochladen, automatisch nach Aufnahmezeit und Ort ordnen und später weiter beschriften.</p>
+    <form class="gallery-form">
+      <label class="photo-picker gallery-picker">
+        <input name="photos" type="file" accept="image/*,.heic,.heif" multiple required>
+        <span class="photo-preview gallery-preview"><b>＋</b> Fotos auswählen</span>
+      </label>
+      <label>
+        Gemeinsame Notiz für diesen Upload
+        <input name="caption" maxlength="140" placeholder="Zum Beispiel: Unser Wochenende in Gent">
+      </label>
+      <button class="primary-button" type="submit">An die Fotowand hängen <span>＋</span></button>
+      <p class="form-status gallery-form-status" role="status" aria-live="polite"></p>
+    </form>
+    <div class="gallery-toolbar">
+      <label>
+        Sortieren
+        <select class="gallery-sort">
+          <option value="newest">Neueste Aufnahme</option>
+          <option value="oldest">Älteste Aufnahme</option>
+          <option value="place">Ort A–Z</option>
+          <option value="uploaded">Zuletzt hochgeladen</option>
+        </select>
+      </label>
+    </div>
+    <div class="gallery-list" aria-live="polite"></div>
   </dialog>
 
   <div class="award-stamp" hidden role="status"></div>
