@@ -366,10 +366,12 @@ function renderGroceryItems() {
     check.textContent = item.done ? "✓" : "";
     check.addEventListener("click", () => runHomeAction(async () => {
       const nextDone = !item.done;
-      await apiRequest(`/api/home/grocery/${encodeURIComponent(item.id)}`, {
+      const updated = await apiRequest(`/api/home/grocery/${encodeURIComponent(item.id)}`, {
         method: "PATCH",
         body: JSON.stringify({ done: nextDone }),
       });
+      groceryItems = groceryItems.map((entry) => entry.id === updated.id ? updated : entry);
+      renderGroceryItems();
       if (nextDone) showStamp("Im Hit gefunden", item.name);
     }));
 
@@ -394,6 +396,8 @@ function renderGroceryItems() {
     remove.textContent = "×";
     remove.addEventListener("click", () => runHomeAction(async () => {
       await apiRequest(`/api/home/grocery/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      groceryItems = groceryItems.filter((entry) => entry.id !== item.id);
+      renderGroceryItems();
     }));
 
     card.append(check, copy, remove);
@@ -439,10 +443,12 @@ function renderHouseholdItems() {
     solve.textContent = item.done ? "Wieder öffnen" : "Problem heldenhaft gelöst";
     solve.addEventListener("click", () => runHomeAction(async () => {
       const nextDone = !item.done;
-      await apiRequest(`/api/home/household/${encodeURIComponent(item.id)}`, {
+      const updated = await apiRequest(`/api/home/household/${encodeURIComponent(item.id)}`, {
         method: "PATCH",
         body: JSON.stringify({ done: nextDone }),
       });
+      householdItems = householdItems.map((entry) => entry.id === updated.id ? updated : entry);
+      renderHouseholdItems();
       if (nextDone) showStamp("Haushaltsheld des Tages", "+10 gute Laune");
     }));
     const remove = document.createElement("button");
@@ -452,6 +458,8 @@ function renderHouseholdItems() {
     remove.textContent = "×";
     remove.addEventListener("click", () => runHomeAction(async () => {
       await apiRequest(`/api/home/household/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      householdItems = householdItems.filter((entry) => entry.id !== item.id);
+      renderHouseholdItems();
     }));
     actions.append(solve, remove);
     card.append(copy, actions);
