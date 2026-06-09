@@ -507,7 +507,7 @@ function renderGalleryItems() {
   galleryCount.textContent = galleryItems.length;
 
   if (!galleryItems.length) {
-    galleryList.append(createEmptyState("Noch ist die Fotowand leer. Das erste gemeinsame Erlebnis wartet schon."));
+    galleryList.append(createEmptyState("Noch ist die Fotowand leer. Zeit für das erste Bild zwischen Kumpel-Kaffee und Rippchen."));
     return;
   }
 
