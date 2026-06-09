@@ -10,10 +10,11 @@
     "build:all-inkl": "bash scripts/build-all-inkl.sh"
   },
   "dependencies": {
-    "@netlify/blobs": "^9.1.0"
+    "@netlify/blobs": "^9.1.0",
+    "@vercel/blob": "^2.4.0"
   },
   "devDependencies": {},
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.0.0"
   }
 }

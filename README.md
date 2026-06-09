@@ -34,6 +34,21 @@ gelöschte Einträge erscheinen dadurch ohne Neuladen auf dem zweiten Gerät.
 Wird die Seite öffentlich ins Internet gestellt, kann jeder mit der URL die
 Pinnwand sehen und bearbeiten.
 
+## Vercel Deployment
+
+Das Repository ist fuer Vercel vorbereitet:
+
+1. Das GitHub-Repository in Vercel importieren.
+2. Als Framework Preset `Other` verwenden.
+3. Im Vercel-Projekt unter `Storage` einen Blob Store erstellen und mit dem
+   Projekt verbinden.
+4. Neu deployen.
+
+Vercel installiert `@vercel/blob` automatisch. Pinnwanddaten und Beweisfotos
+werden dauerhaft im verbundenen Blob Store gespeichert. Die dazugehoerige
+Umgebungsvariable `BLOB_READ_WRITE_TOKEN` wird beim Verbinden automatisch
+gesetzt.
+
 ### Optionale KI-Suche
 
 Die Suche funktioniert auch ohne KI-Key lokal ueber Titel, Orte, Daten, Tags, Notizen und Dateinamen. Wenn du Gemini aktivieren willst, setze den API-Key nur serverseitig:
