@@ -743,14 +743,15 @@ const server = http.createServer(async (req, res) => {
         && Number.isFinite(latitude) && Number.isFinite(longitude)
         && Math.abs(latitude) <= 90 && Math.abs(longitude) <= 180;
       const parsedDate = new Date(sanitizeHomeItem(fields.takenAt, 40));
-      const location = hasCoordinates ? await reverseGeocodeHome(latitude, longitude) : "";
+      const locationHint = sanitizeHomeItem(fields.locationHint, 100);
+      const location = hasCoordinates ? await reverseGeocodeHome(latitude, longitude) : locationHint;
       const home = readHome();
       const item = {
         id: `gallery-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
         photo: moveFileToHome(photo),
         caption: sanitizeHomeItem(fields.caption, 140),
         takenAt: Number.isNaN(parsedDate.getTime()) ? "" : parsedDate.toISOString(),
-        location: location || (hasCoordinates ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` : ""),
+        location: location || locationHint || (hasCoordinates ? `${latitude.toFixed(5)}, ${longitude.toFixed(5)}` : ""),
         latitude: hasCoordinates ? latitude : null,
         longitude: hasCoordinates ? longitude : null,
         metadataSource: sanitizeHomeItem(fields.metadataSource, 20) || "file",

@@ -688,12 +688,16 @@ async function readPhotoMetadata(file) {
     : new Date(file.lastModified || Date.now()).toISOString();
   const latitude = Number(metadata.latitude);
   const longitude = Number(metadata.longitude);
+  const locationHint = String(
+    metadata.City || metadata.Location || metadata.SubLocation || metadata.Country || "",
+  ).trim();
 
   return {
     takenAt,
     latitude: Number.isFinite(latitude) ? latitude : "",
     longitude: Number.isFinite(longitude) ? longitude : "",
-    metadataSource: date || Number.isFinite(latitude) ? "exif" : "file",
+    locationHint,
+    metadataSource: date || Number.isFinite(latitude) || locationHint ? "exif" : "file",
   };
 }
 
@@ -758,6 +762,7 @@ galleryForm.addEventListener("submit", async (event) => {
       data.set("takenAt", metadata.takenAt);
       data.set("latitude", metadata.latitude);
       data.set("longitude", metadata.longitude);
+      data.set("locationHint", metadata.locationHint);
       data.set("metadataSource", metadata.metadataSource);
       data.set("originalName", files[index].name);
 
