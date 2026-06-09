@@ -368,7 +368,7 @@ function renderGroceryItems() {
       const nextDone = !item.done;
       const updated = await apiRequest(`/api/home/grocery/${encodeURIComponent(item.id)}`, {
         method: "PATCH",
-        body: JSON.stringify({ done: nextDone }),
+        body: JSON.stringify({ done: nextDone, item }),
       });
       groceryItems = groceryItems.map((entry) => entry.id === updated.id ? updated : entry);
       renderGroceryItems();
@@ -395,7 +395,10 @@ function renderGroceryItems() {
     remove.setAttribute("aria-label", `${item.name} löschen`);
     remove.textContent = "×";
     remove.addEventListener("click", () => runHomeAction(async () => {
-      await apiRequest(`/api/home/grocery/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      await apiRequest(`/api/home/grocery/${encodeURIComponent(item.id)}`, {
+        method: "DELETE",
+        body: JSON.stringify({}),
+      });
       groceryItems = groceryItems.filter((entry) => entry.id !== item.id);
       renderGroceryItems();
     }));
@@ -445,7 +448,7 @@ function renderHouseholdItems() {
       const nextDone = !item.done;
       const updated = await apiRequest(`/api/home/household/${encodeURIComponent(item.id)}`, {
         method: "PATCH",
-        body: JSON.stringify({ done: nextDone }),
+        body: JSON.stringify({ done: nextDone, item }),
       });
       householdItems = householdItems.map((entry) => entry.id === updated.id ? updated : entry);
       renderHouseholdItems();
@@ -457,7 +460,10 @@ function renderHouseholdItems() {
     remove.setAttribute("aria-label", `${item.task} löschen`);
     remove.textContent = "×";
     remove.addEventListener("click", () => runHomeAction(async () => {
-      await apiRequest(`/api/home/household/${encodeURIComponent(item.id)}`, { method: "DELETE" });
+      await apiRequest(`/api/home/household/${encodeURIComponent(item.id)}`, {
+        method: "DELETE",
+        body: JSON.stringify({ photo: item.photo }),
+      });
       householdItems = householdItems.filter((entry) => entry.id !== item.id);
       renderHouseholdItems();
     }));
