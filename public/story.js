@@ -1,4 +1,4 @@
-const chapters = ["intro", "chat", "date", "moments", "ending", "coffee", "home"];
+const chapters = ["intro", "chat", "date", "moments", "ending", "coffee", "message", "home"];
 const header = document.querySelector(".story-header");
 const progressLabel = document.querySelector(".progress-label");
 const progressSegments = [...document.querySelectorAll(".progress-track i")];
