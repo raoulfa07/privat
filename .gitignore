@@ -16,3 +16,5 @@ dist/
 
 # ALL-INKL private config
 all-inkl/private/config.php
+.vercel
+.env*
