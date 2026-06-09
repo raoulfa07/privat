@@ -963,6 +963,15 @@ body:has(.chapter-home.is-active) { --stage: #1f3029; --surface: var(--cream); -
 .tool-dialog select:focus { border-color: var(--terracotta); box-shadow: 0 0 0 3px rgba(199, 124, 93, .12); }
 .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
 .tool-dialog .primary-button { min-height: 47px; font-size: 13px; }
+.tool-dialog .primary-button:disabled { cursor: wait; opacity: .65; }
+.form-status {
+  min-height: 17px;
+  margin: 8px 2px 0;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+.form-status.is-error { color: #9d3d3d; }
 .tool-list { margin-top: 15px; display: grid; gap: 8px; }
 .tool-empty {
   margin: 0;

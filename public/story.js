@@ -29,6 +29,8 @@ const groceryCount = document.querySelector(".grocery-open-count");
 const householdCount = document.querySelector(".household-open-count");
 const photoInput = householdForm.querySelector('input[name="photo"]');
 const photoPreview = householdForm.querySelector(".photo-preview");
+const householdSubmit = householdForm.querySelector('button[type="submit"]');
+const householdFormStatus = householdForm.querySelector(".household-form-status");
 
 let current = 0;
 let shownMessages = 1;
@@ -244,6 +246,7 @@ function createEmptyState(text) {
 async function apiRequest(url, options = {}) {
   const response = await fetch(url, {
     credentials: "same-origin",
+    cache: "no-store",
     ...options,
     headers: options.body instanceof FormData
       ? options.headers
@@ -287,6 +290,12 @@ async function loadHome() {
 }
 
 function connectHomeEvents() {
+  if (location.hostname !== "localhost" && location.hostname !== "127.0.0.1") {
+    window.clearTimeout(homeRetryTimer);
+    homeRetryTimer = window.setTimeout(loadHome, 15000);
+    return;
+  }
+
   if (homeEvents) homeEvents.close();
   homeEvents = new EventSource("/api/home/events");
   homeEvents.addEventListener("homeUpdated", (event) => {
@@ -496,15 +505,53 @@ photoInput.addEventListener("change", () => {
   reader.readAsDataURL(file);
 });
 
+async function compressPhoto(file) {
+  if (!file || file.size <= 1.5 * 1024 * 1024) return file;
+
+  const bitmap = await createImageBitmap(file);
+  const scale = Math.min(1, 1600 / Math.max(bitmap.width, bitmap.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(bitmap.width * scale));
+  canvas.height = Math.max(1, Math.round(bitmap.height * scale));
+  canvas.getContext("2d").drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+  bitmap.close();
+
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.78));
+  if (!blob) throw new Error("Das Foto konnte nicht vorbereitet werden.");
+  return new File([blob], "beweisfoto.jpg", { type: "image/jpeg" });
+}
+
 householdForm.addEventListener("submit", async (event) => {
   event.preventDefault();
+  if (householdSubmit.disabled) return;
+
   const data = new FormData(householdForm);
-  const item = await runHomeAction(() => apiRequest("/api/home/household", { method: "POST", body: data }));
-  if (!item) return;
-  householdForm.reset();
-  photoPreview.removeAttribute("style");
-  photoPreview.innerHTML = "<b>📷</b> Beweisfoto hinzufügen";
-  showStamp("Fundstück dokumentiert", item.room);
+  householdSubmit.disabled = true;
+  householdSubmit.firstChild.textContent = "Foto wird angeheftet ";
+  householdFormStatus.textContent = "Einen kurzen Moment …";
+  householdFormStatus.classList.remove("is-error");
+
+  try {
+    const photo = photoInput.files?.[0];
+    if (photo) data.set("photo", await compressPhoto(photo));
+
+    const item = await apiRequest("/api/home/household", { method: "POST", body: data });
+    householdForm.reset();
+    photoPreview.removeAttribute("style");
+    photoPreview.innerHTML = "<b>📷</b> Beweisfoto hinzufügen";
+    householdFormStatus.textContent = "Erfolgreich an die Pinnwand geheftet.";
+    setHomeState({
+      grocery: groceryItems,
+      household: [item, ...householdItems.filter((entry) => entry.id !== item.id)],
+    });
+    showStamp("Fundstück dokumentiert", item.room);
+  } catch (error) {
+    householdFormStatus.textContent = error.message || "Das Foto konnte nicht angeheftet werden.";
+    householdFormStatus.classList.add("is-error");
+  } finally {
+    householdSubmit.disabled = false;
+    householdSubmit.firstChild.textContent = "Fundstück melden ";
+  }
 });
 
 function createRoomMemory(memory, index) {
