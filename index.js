@@ -1,6 +1,7 @@
 const fs = require("fs");
 const http = require("http");
 const path = require("path");
+const crypto = require("crypto");
 const { spawnSync } = require("child_process");
 const { URL } = require("url");
 
@@ -9,9 +10,12 @@ const publicDir = path.join(rootDir, "public");
 const dataDir = path.join(rootDir, "data");
 const uploadDir = path.join(publicDir, "uploads");
 const previewDir = path.join(uploadDir, "previews");
+const homeUploadDir = path.join(uploadDir, "home");
 const dbPath = path.join(dataDir, "memories.json");
+const homeDbPath = path.join(dataDir, "home.json");
 const geocodeCachePath = path.join(dataDir, "geocode-cache.json");
 const clients = new Set();
+const homeClients = new Set();
 const GEMINI_MODEL = "gemini-2.5-flash";
 
 const mimeTypes = {
@@ -51,7 +55,11 @@ function ensureStorage() {
   fs.mkdirSync(dataDir, { recursive: true });
   fs.mkdirSync(uploadDir, { recursive: true });
   fs.mkdirSync(previewDir, { recursive: true });
+  fs.mkdirSync(homeUploadDir, { recursive: true });
   if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, JSON.stringify(seedMemories, null, 2));
+  if (!fs.existsSync(homeDbPath)) {
+    fs.writeFileSync(homeDbPath, JSON.stringify({ grocery: [], household: [], updatedAt: new Date().toISOString() }, null, 2));
+  }
 }
 
 function readMemories() {
@@ -61,6 +69,23 @@ function readMemories() {
 
 function writeMemories(memories) {
   fs.writeFileSync(dbPath, JSON.stringify(memories, null, 2));
+}
+
+function readHome() {
+  ensureStorage();
+  const value = JSON.parse(fs.readFileSync(homeDbPath, "utf8"));
+  return {
+    grocery: Array.isArray(value.grocery) ? value.grocery : [],
+    household: Array.isArray(value.household) ? value.household : [],
+    updatedAt: value.updatedAt || new Date().toISOString(),
+  };
+}
+
+function writeHome(home) {
+  const next = { ...home, updatedAt: new Date().toISOString() };
+  fs.writeFileSync(homeDbPath, JSON.stringify(next, null, 2));
+  broadcastTo(homeClients, "homeUpdated", next);
+  return next;
 }
 
 function readGeocodeCache() {
@@ -77,9 +102,34 @@ function sendJson(res, status, data) {
   res.end(JSON.stringify(data));
 }
 
-function broadcast(event, data) {
+function broadcastTo(targets, event, data) {
   const payload = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  for (const res of clients) res.write(payload);
+  for (const res of targets) res.write(payload);
+}
+
+function broadcast(event, data) {
+  broadcastTo(clients, event, data);
+}
+
+function sanitizeHomeItem(value, max = 100) {
+  return String(value || "").trim().slice(0, max);
+}
+
+function deleteHomeUpload(fileUrl) {
+  if (!String(fileUrl || "").startsWith("/uploads/home/")) return;
+  const filePath = path.normalize(path.join(publicDir, decodeURIComponent(String(fileUrl).replace(/^\/+/, ""))));
+  if (!filePath.startsWith(homeUploadDir)) return;
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+}
+
+function moveFileToHome(file) {
+  if (!file?.url?.startsWith("/uploads/")) return "";
+  const sourcePath = path.join(publicDir, file.url.replace(/^\/+/, ""));
+  if (!fs.existsSync(sourcePath)) return "";
+  const filename = path.basename(sourcePath);
+  const targetPath = path.join(homeUploadDir, filename);
+  fs.renameSync(sourcePath, targetPath);
+  return `/uploads/home/${filename}`;
 }
 
 function collectBody(req, limit = 80 * 1024 * 1024) {
@@ -547,6 +597,110 @@ const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
   try {
+    if (url.pathname === "/api/home/events" && req.method === "GET") {
+      res.writeHead(200, {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache",
+        Connection: "keep-alive",
+      });
+      res.write(`event: homeUpdated\ndata: ${JSON.stringify(readHome())}\n\n`);
+      homeClients.add(res);
+      req.on("close", () => homeClients.delete(res));
+      return;
+    }
+
+    if (url.pathname === "/api/home" && req.method === "GET") {
+      return sendJson(res, 200, readHome());
+    }
+
+    if (url.pathname === "/api/home/grocery" && req.method === "POST") {
+      const body = await collectBody(req, 128 * 1024);
+      const payload = body.length ? JSON.parse(body.toString("utf8")) : {};
+      const name = sanitizeHomeItem(payload.name, 80);
+      if (!name) return sendJson(res, 400, { error: "Bitte einen Artikel eintragen." });
+      const home = readHome();
+      const item = {
+        id: `grocery-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
+        name,
+        amount: sanitizeHomeItem(payload.amount, 30),
+        priority: ["wish", "needed", "kater"].includes(payload.priority) ? payload.priority : "wish",
+        done: false,
+        createdAt: new Date().toISOString(),
+        completedAt: "",
+      };
+      home.grocery.unshift(item);
+      writeHome(home);
+      return sendJson(res, 201, item);
+    }
+
+    const groceryMatch = url.pathname.match(/^\/api\/home\/grocery\/([^/]+)$/);
+    if (groceryMatch && req.method === "PATCH") {
+      const body = await collectBody(req, 128 * 1024);
+      const payload = body.length ? JSON.parse(body.toString("utf8")) : {};
+      const home = readHome();
+      const item = home.grocery.find((entry) => entry.id === decodeURIComponent(groceryMatch[1]));
+      if (!item) return sendJson(res, 404, { error: "Artikel nicht gefunden." });
+      item.done = Boolean(payload.done);
+      item.completedAt = item.done ? new Date().toISOString() : "";
+      writeHome(home);
+      return sendJson(res, 200, item);
+    }
+
+    if (groceryMatch && req.method === "DELETE") {
+      const home = readHome();
+      const id = decodeURIComponent(groceryMatch[1]);
+      if (!home.grocery.some((entry) => entry.id === id)) return sendJson(res, 404, { error: "Artikel nicht gefunden." });
+      home.grocery = home.grocery.filter((entry) => entry.id !== id);
+      writeHome(home);
+      return sendJson(res, 200, { ok: true });
+    }
+
+    if (url.pathname === "/api/home/household" && req.method === "POST") {
+      const body = await collectBody(req, 12 * 1024 * 1024);
+      const { fields, files } = parseMultipart(body, req.headers["content-type"] || "");
+      const task = sanitizeHomeItem(fields.task, 100);
+      if (!task) return sendJson(res, 400, { error: "Bitte eine Aufgabe eintragen." });
+      const photo = files.find((file) => file.fieldName === "photo");
+      const home = readHome();
+      const item = {
+        id: `household-${Date.now()}-${crypto.randomBytes(3).toString("hex")}`,
+        task,
+        room: sanitizeHomeItem(fields.room, 30) || "Unbekannter Tatort",
+        tone: sanitizeHomeItem(fields.tone, 60) || "Kleine Erinnerung",
+        photo: moveFileToHome(photo),
+        done: false,
+        createdAt: new Date().toISOString(),
+        completedAt: "",
+      };
+      home.household.unshift(item);
+      writeHome(home);
+      return sendJson(res, 201, item);
+    }
+
+    const householdMatch = url.pathname.match(/^\/api\/home\/household\/([^/]+)$/);
+    if (householdMatch && req.method === "PATCH") {
+      const body = await collectBody(req, 128 * 1024);
+      const payload = body.length ? JSON.parse(body.toString("utf8")) : {};
+      const home = readHome();
+      const item = home.household.find((entry) => entry.id === decodeURIComponent(householdMatch[1]));
+      if (!item) return sendJson(res, 404, { error: "Fundstück nicht gefunden." });
+      item.done = Boolean(payload.done);
+      item.completedAt = item.done ? new Date().toISOString() : "";
+      writeHome(home);
+      return sendJson(res, 200, item);
+    }
+
+    if (householdMatch && req.method === "DELETE") {
+      const home = readHome();
+      const id = decodeURIComponent(householdMatch[1]);
+      const item = home.household.find((entry) => entry.id === id);
+      if (!item) return sendJson(res, 404, { error: "Fundstück nicht gefunden." });
+      deleteHomeUpload(item.photo);
+      home.household = home.household.filter((entry) => entry.id !== id);
+      writeHome(home);
+      return sendJson(res, 200, { ok: true });
+    }
+
     if (req.method === "GET" && url.pathname === "/events") {
       res.writeHead(200, {
         "Content-Type": "text/event-stream; charset=utf-8",

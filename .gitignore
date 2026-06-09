@@ -5,6 +5,7 @@ node_modules/
 
 # Local private memories and uploads.
 data/memories.json
+data/home.json
 public/uploads/
 
 # Netlify local state.

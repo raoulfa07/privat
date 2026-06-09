@@ -17,6 +17,23 @@ http://localhost:3000
 
 Lokale Erinnerungen werden in `data/memories.json` gespeichert. Lokale Uploads liegen in `public/uploads`.
 
+### Gemeinsame Pinnwand
+
+Hit-Liste und Haushalts-Melder bilden eine offene gemeinsame Pinnwand. Es gibt
+keine Konten, Profile oder Anmeldung:
+
+- Daten: `data/home.json`
+- Beweisfotos: `public/uploads/home/`
+
+Beide Geräte müssen dieselbe Serveradresse öffnen. Im gleichen WLAN kann dafür statt
+`localhost` die lokale IP-Adresse des Macs mit Port `3000` verwendet werden.
+
+Die Synchronisation nutzt Server-Sent Events. Neue Einträge, erledigte Aufgaben und
+gelöschte Einträge erscheinen dadurch ohne Neuladen auf dem zweiten Gerät.
+
+Wird die Seite öffentlich ins Internet gestellt, kann jeder mit der URL die
+Pinnwand sehen und bearbeiten.
+
 ### Optionale KI-Suche
 
 Die Suche funktioniert auch ohne KI-Key lokal ueber Titel, Orte, Daten, Tags, Notizen und Dateinamen. Wenn du Gemini aktivieren willst, setze den API-Key nur serverseitig:
@@ -34,8 +51,8 @@ Bei Cloudflare gehoert der Key in `Workers & Pages > dein Projekt > Settings > V
 Das Projekt ist auch fuer Cloudflare Pages vorbereitet:
 
 - `public/` ist das Ausgabeverzeichnis.
-- `functions/api/` enthaelt die Cloudflare Pages Functions fuer `/api/memories`, `/api/file` und `/api/ai-search`.
-- Erinnerungsdaten werden in KV gespeichert.
+- `functions/api/` enthaelt die Cloudflare Pages Functions fuer Erinnerungen, Dateien, KI-Suche und die gemeinsame Pinnwand.
+- Erinnerungs- und Pinnwanddaten werden in KV gespeichert.
 - Bilder und Vorschauen werden in R2 gespeichert.
 
 ### Cloudflare Bindings

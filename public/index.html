@@ -1,2723 +1,503 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Charleen & Raoul · Erinnerungsrundgang</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
-<style>
-  * { box-sizing: border-box; }
-  :root {
-    --ink: #f4ecd8;
-    --muted: rgba(244, 236, 216, 0.68);
-    --paper: #070b1c;
-    --soft: rgba(244, 236, 216, 0.08);
-    --line: rgba(244, 236, 216, 0.13);
-    --rose: #e8745c;
-    --aqua: #f4b860;
-    --white: rgba(8, 12, 28, 0.72);
-    --night: #04060f;
-    --parchment: #f4ecd8;
-    --parchment-dim: rgba(244, 236, 216, 0.72);
-    --parchment-faint: rgba(244, 236, 216, 0.42);
-    --ember: #f4b860;
-    --ember-soft: #f7d999;
-    --ember-deep: #e8745c;
-    --glass-bg: rgba(8, 12, 28, 0.66);
-    --glass-strong: rgba(8, 12, 28, 0.88);
-    --glass-border: rgba(244, 236, 216, 0.13);
-    --glass-border-warm: rgba(244, 184, 96, 0.28);
-    --shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.72), 0 12px 24px -12px rgba(0, 0, 0, 0.62);
-    --radius: 8px;
-    --serif: "Cormorant Garamond", Georgia, serif;
-    --sans: "DM Sans", -apple-system, system-ui, sans-serif;
-    --mono: "JetBrains Mono", ui-monospace, monospace;
-  }
-
-  body {
-    margin: 0;
-    min-height: 100vh;
-    background: radial-gradient(ellipse at center, #0c1430 0%, #04060f 78%);
-    color: var(--ink);
-    font-family: var(--sans);
-    font-size: 15px;
-    letter-spacing: 0.01em;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  button, input, textarea, select { font: inherit; }
-  button { cursor: pointer; }
-
-  .app {
-    min-height: 100vh;
-    display: grid;
-    grid-template-columns: 350px minmax(0, 1fr);
-  }
-
-  .sidebar {
-    position: sticky;
-    top: 0;
-    height: 100vh;
-    overflow: auto;
-    padding: 26px;
-    background: var(--glass-bg);
-    border-right: 1px solid var(--line);
-    color: var(--parchment);
-    backdrop-filter: blur(18px);
-  }
-
-  .brand {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 18px;
-    margin-bottom: 24px;
-  }
-
-  .brand-tools {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-  }
-
-  .brand h1 {
-    margin: 0;
-    font-family: var(--serif);
-    font-size: 36px;
-    font-weight: 300;
-    line-height: 0.94;
-    letter-spacing: -0.02em;
-  }
-
-  .live {
-    display: inline-flex;
-    align-items: center;
-    gap: 7px;
-    color: var(--muted);
-    font-size: 12px;
-    white-space: nowrap;
-  }
-
-  .dot {
-    width: 8px;
-    height: 8px;
-    border-radius: 99px;
-    background: #c28d2e;
-  }
-
-  .dot.on { background: #607848; box-shadow: 0 0 0 4px rgba(96, 120, 72, 0.13); }
-
-  .panel-toggle {
-    display: inline-grid;
-    place-items: center;
-    width: 34px;
-    height: 34px;
-    border: 1px solid var(--line);
-    border-radius: 999px;
-    color: var(--parchment);
-    background: rgba(244, 236, 216, 0.08);
-    font-size: 18px;
-    line-height: 1;
-  }
-
-  .search, .memory-form {
-    display: grid;
-    gap: 10px;
-  }
-
-  .search { margin-bottom: 18px; }
-
-  input, textarea, select {
-    width: 100%;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: rgba(244, 236, 216, 0.08);
-    color: var(--ink);
-    padding: 12px 13px;
-    outline: none;
-  }
-
-  input:focus, textarea:focus, select:focus {
-    border-color: rgba(36, 127, 135, 0.48);
-    box-shadow: 0 0 0 3px rgba(36, 127, 135, 0.12);
-  }
-
-  .tabs {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 6px;
-    padding: 5px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: rgba(244, 236, 216, 0.07);
-    margin-bottom: 22px;
-  }
-
-  .tabs button {
-    min-height: 36px;
-    border: 0;
-    border-radius: 6px;
-    background: transparent;
-    color: var(--muted);
-  }
-
-  .tabs button.active {
-    color: var(--night);
-    background: var(--parchment);
-    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.22);
-  }
-
-  .tour-controls {
-    display: grid;
-    gap: 8px;
-    padding: 16px 0 20px;
-    border-top: 1px solid var(--line);
-    border-bottom: 1px solid var(--line);
-    margin-bottom: 20px;
-  }
-
-  .ai-panel {
-    display: grid;
-    gap: 10px;
-    padding: 16px;
-    border: 1px solid rgba(244, 236, 216, 0.14);
-    border-radius: var(--radius);
-    background: linear-gradient(180deg, rgba(8, 12, 28, 0.78), rgba(8, 12, 28, 0.58));
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(18px);
-    margin-bottom: 20px;
-  }
-
-  .chapter-panel {
-    display: grid;
-    gap: 10px;
-    padding: 14px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: rgba(8, 12, 28, 0.44);
-    margin-bottom: 20px;
-  }
-
-  .chapter-panel h2 {
-    margin: 0;
-    color: var(--parchment);
-    font-family: var(--serif);
-    font-size: 22px;
-    font-weight: 400;
-  }
-
-  .chapter-list {
-    display: grid;
-    gap: 7px;
-  }
-
-  .chapter-pill {
-    display: flex;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 36px;
-    padding: 8px 10px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    color: var(--parchment);
-    background: rgba(244, 236, 216, 0.06);
-    text-align: left;
-  }
-
-  .chapter-pill span {
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  body.gift-mode .search,
-  body.gift-mode .ai-panel,
-  body.gift-mode .gallery-toolbar,
-  body.gift-mode .upload-fab,
-  body.gift-mode .admin-only {
-    display: none !important;
-  }
-
-  body.gift-mode .tour-controls {
-    border-top: 0;
-  }
-
-  .ai-panel h2 {
-    margin: 0;
-    color: var(--parchment);
-    font-family: var(--serif);
-    font-size: 24px;
-    font-weight: 400;
-    line-height: 1;
-  }
-
-  .ai-panel p {
-    margin: 0;
-    color: var(--parchment-dim);
-    font-size: 13px;
-    line-height: 1.45;
-  }
-
-  .ai-form {
-    display: grid;
-    grid-template-columns: 1fr 44px;
-    gap: 8px;
-  }
-
-  .ai-form button {
-    min-height: 42px;
-    border: 0;
-    border-radius: var(--radius);
-    color: var(--night);
-    background: linear-gradient(135deg, var(--ember), var(--ember-deep));
-    font-weight: 800;
-  }
-
-  .ai-form input {
-    border-color: rgba(244, 236, 216, 0.18);
-    background: rgba(4, 6, 15, 0.54);
-    color: var(--parchment);
-  }
-
-  .ai-form input::placeholder { color: var(--parchment-faint); }
-
-  .ai-form input:focus {
-    border-color: var(--glass-border-warm);
-    box-shadow: 0 0 0 3px rgba(244, 184, 96, 0.12);
-  }
-
-  .ai-answer {
-    display: none;
-    max-height: 250px;
-    overflow: auto;
-    padding: 16px 18px;
-    border-radius: 16px;
-    color: var(--parchment);
-    background:
-      linear-gradient(135deg, rgba(244, 184, 96, 0.08), rgba(232, 116, 92, 0.04)),
-      rgba(4, 6, 15, 0.48);
-    border: 1px solid var(--glass-border-warm);
-    font-size: 14px;
-    line-height: 1.45;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  }
-
-  .ai-answer.active { display: block; }
-
-  .ai-answer-label {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-bottom: 8px;
-    color: var(--ember);
-    font-family: var(--mono);
-    font-size: 10px;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-  }
-
-  .ai-answer-text {
-    color: var(--parchment);
-    font-family: var(--serif);
-    font-size: 16.5px;
-    font-style: italic;
-    line-height: 1.52;
-  }
-
-  .ai-thinking {
-    display: inline-flex;
-    gap: 4px;
-  }
-
-  .ai-thinking span {
-    width: 4px;
-    height: 4px;
-    border-radius: 50%;
-    background: var(--ember);
-    animation: thinking 1.4s ease-in-out infinite;
-  }
-
-  .ai-thinking span:nth-child(2) { animation-delay: 0.2s; }
-  .ai-thinking span:nth-child(3) { animation-delay: 0.4s; }
-
-  @keyframes thinking {
-    0%, 80%, 100% { opacity: 0.35; transform: translateY(0); }
-    40% { opacity: 1; transform: translateY(-3px); }
-  }
-
-  .ai-results {
-    display: grid;
-    gap: 7px;
-    max-height: 220px;
-    overflow: auto;
-  }
-
-  .ai-result {
-    display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) auto;
-    gap: 12px;
-    align-items: center;
-    width: 100%;
-    min-height: 54px;
-    padding: 10px 12px;
-    border: 1px solid transparent;
-    border-radius: 14px;
-    background: transparent;
-    color: var(--parchment);
-    text-align: left;
-    transition: background 0.2s, border-color 0.2s, transform 0.2s;
-  }
-
-  .ai-result:hover {
-    border-color: var(--glass-border-warm);
-    background: rgba(244, 184, 96, 0.06);
-    transform: translateY(-1px);
-  }
-
-  .ai-result img, .ai-result-fallback {
-    width: 44px;
-    height: 44px;
-    border-radius: 6px;
-    object-fit: cover;
-    background: var(--soft);
-  }
-
-  .ai-result-fallback {
-    display: grid;
-    place-items: center;
-    color: var(--ember);
-    font-weight: 800;
-    background: linear-gradient(135deg, rgba(244, 184, 96, 0.18), rgba(232, 116, 92, 0.08));
-  }
-
-  .ai-result strong {
-    display: block;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-size: 13px;
-    color: var(--parchment);
-  }
-
-  .ai-result span {
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .ai-result::after {
-    content: "Öffnen";
-    color: var(--parchment-faint);
-    font-family: var(--mono);
-    font-size: 9px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-  }
-
-  .primary, .secondary {
-    border-radius: var(--radius);
-    min-height: 42px;
-    font-weight: 700;
-  }
-
-  .primary {
-    border: 0;
-    color: #22170d;
-    background: var(--ember);
-  }
-
-  .secondary {
-    border: 1px solid var(--line);
-    color: var(--ink);
-    background: rgba(244, 236, 216, 0.08);
-  }
-
-  .memory-form {
-    padding-top: 4px;
-  }
-
-  .memory-form h2 {
-    margin: 0 0 3px;
-    font-size: 18px;
-  }
-
-  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-
-  .dropzone {
-    display: grid;
-    place-items: center;
-    min-height: 112px;
-    border: 1px dashed rgba(36, 127, 135, 0.5);
-    border-radius: var(--radius);
-    color: var(--ember);
-    background: rgba(244, 184, 96, 0.06);
-    text-align: center;
-    padding: 16px;
-  }
-
-  .dropzone strong { display: block; color: var(--parchment); margin-bottom: 5px; }
-  .dropzone input { display: none; }
-
-  .selected-previews {
-    display: none;
-    grid-template-columns: repeat(auto-fill, minmax(108px, 1fr));
-    gap: 10px;
-    padding: 0 24px 18px;
-  }
-
-  .selected-previews.active { display: grid; }
-
-  .selected-preview {
-    overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: var(--paper);
-  }
-
-  .selected-preview-media {
-    aspect-ratio: 1;
-    display: grid;
-    place-items: center;
-    background: var(--soft);
-    color: var(--muted);
-    font-weight: 800;
-  }
-
-  .selected-preview img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .selected-preview span {
-    display: block;
-    overflow: hidden;
-    padding: 7px;
-    color: var(--muted);
-    font-size: 12px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-
-  .upload-modal {
-    position: fixed;
-    inset: 0;
-    z-index: 60;
-    display: grid;
-    place-items: center;
-    padding: 24px;
-    background: rgba(4, 6, 15, 0.7);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 0.4s;
-  }
-
-  .upload-modal.active {
-    opacity: 1;
-    pointer-events: auto;
-  }
-
-  .upload-panel {
-    width: min(700px, 100%);
-    max-height: min(88vh, 860px);
-    overflow: auto;
-    border-radius: 28px;
-    background: linear-gradient(180deg, rgba(20, 28, 60, 0.94), rgba(10, 16, 40, 0.96));
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--shadow);
-    transform: translateY(20px) scale(0.97);
-    transition: transform 0.5s cubic-bezier(.2,.8,.2,1);
-  }
-
-  .upload-modal.active .upload-panel { transform: translateY(0) scale(1); }
-
-  .upload-head {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
-    padding: 34px 36px 12px;
-  }
-
-  .upload-head h2 {
-    margin: 0 0 8px;
-    font-family: var(--serif);
-    font-size: 38px;
-    font-weight: 300;
-    line-height: 1.05;
-  }
-
-  .upload-head p {
-    margin: 0;
-    color: var(--parchment-dim);
-    font-family: var(--serif);
-    font-size: 17px;
-    font-style: italic;
-  }
-
-  .wizard-steps {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 8px;
-    margin: 8px 36px 0;
-    padding: 4px;
-    border: 1px solid var(--glass-border);
-    border-radius: 14px;
-    background: rgba(4, 6, 15, 0.4);
-  }
-
-  .wizard-step {
-    padding: 10px 12px;
-    border-radius: 10px;
-    color: var(--muted);
-    background: transparent;
-    text-align: center;
-    font-size: 12.5px;
-    font-weight: 600;
-  }
-
-  .wizard-step.active {
-    color: var(--ember-soft);
-    background: linear-gradient(135deg, rgba(244, 184, 96, 0.16), rgba(232, 116, 92, 0.08));
-    box-shadow: inset 0 0 0 1px var(--glass-border-warm);
-  }
-
-  .wizard-page { display: none; padding: 22px 36px 20px; }
-  .wizard-page.active { display: grid; gap: 12px; }
-
-  .geo-status {
-    display: none;
-    padding: 11px 12px;
-    border-radius: var(--radius);
-    color: var(--parchment);
-    background: linear-gradient(135deg, rgba(244, 184, 96, 0.08), rgba(232, 116, 92, 0.04));
-    border: 1px solid var(--glass-border-warm);
-    line-height: 1.35;
-  }
-
-  .geo-status.active { display: block; }
-
-  .wizard-actions {
-    display: flex;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 16px 36px 34px;
-  }
-
-  .upload-fab {
-    position: fixed;
-    right: 24px;
-    bottom: 24px;
-    z-index: 24;
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    min-height: 52px;
-    padding: 14px 22px 14px 16px;
-    border: 0;
-    border-radius: 999px;
-    color: var(--night);
-    background: linear-gradient(135deg, var(--ember) 0%, var(--ember-deep) 100%);
-    box-shadow:
-      0 14px 40px -10px rgba(244, 184, 96, 0.44),
-      0 0 0 1px rgba(244, 184, 96, 0.3),
-      inset 0 1px 0 rgba(255, 255, 255, 0.3);
-    font-weight: 700;
-    font-size: 13.5px;
-    transition: transform 0.25s ease, box-shadow 0.25s ease;
-  }
-
-  .upload-fab:hover {
-    transform: translateY(-2px);
-    box-shadow:
-      0 18px 48px -10px rgba(244, 184, 96, 0.52),
-      0 0 0 1px rgba(244, 184, 96, 0.42),
-      inset 0 1px 0 rgba(255, 255, 255, 0.32);
-  }
-
-  body.station-open .upload-fab {
-    opacity: 0;
-    transform: translateY(18px) scale(0.96);
-    pointer-events: none;
-  }
-
-  .upload-fab .fab-icon {
-    display: grid;
-    place-items: center;
-    width: 24px;
-    height: 24px;
-    border-radius: 999px;
-    background: rgba(4, 6, 15, 0.16);
-    font-size: 22px;
-    font-weight: 400;
-    line-height: 1;
-  }
-
-  .main { min-width: 0; padding: 28px; }
-
-  .stage {
-    position: relative;
-    min-height: min(86vh, 880px);
-    overflow: hidden;
-    border-radius: var(--radius);
-    background: radial-gradient(circle at 50% 42%, #101a38, #070b1c 58%, #04060f);
-    box-shadow: var(--shadow);
-  }
-
-  #globeStage {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    cursor: grab;
-    touch-action: none;
-  }
-
-  #globeStage.dragging { cursor: grabbing; }
-
-  .stage-copy {
-    position: absolute;
-    left: 34px;
-    bottom: 34px;
-    z-index: 4;
-    width: min(720px, calc(100% - 68px));
-    color: white;
-    pointer-events: none;
-  }
-
-  .stage-copy h2 {
-    margin: 10px 0 14px;
-    font-family: var(--serif);
-    font-size: clamp(52px, 7.4vw, 104px);
-    font-weight: 300;
-    line-height: 0.9;
-    letter-spacing: -0.03em;
-  }
-
-  .kicker {
-    width: fit-content;
-    padding: 7px 10px;
-    border: 1px solid rgba(255, 253, 248, 0.22);
-    border-radius: 999px;
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: var(--ember-soft);
-    background: rgba(244, 184, 96, 0.06);
-    backdrop-filter: blur(10px);
-  }
-
-  .stats {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-  }
-
-  .stat {
-    display: inline-flex;
-    gap: 8px;
-    align-items: baseline;
-    padding: 8px 11px;
-    border-radius: 999px;
-    color: var(--parchment);
-    background: rgba(8, 12, 28, 0.72);
-    border: 1px solid rgba(244, 236, 216, 0.12);
-  }
-
-  .stat b { color: var(--ember); }
-
-  .hud {
-    position: absolute;
-    right: 24px;
-    top: 24px;
-    z-index: 5;
-    display: grid;
-    gap: 10px;
-    width: min(320px, calc(100% - 48px));
-  }
-
-  .hud-card, .station {
-    border: 1px solid rgba(255, 253, 248, 0.18);
-    border-radius: var(--radius);
-    color: white;
-    background: var(--glass-bg);
-    backdrop-filter: blur(16px);
-    box-shadow: 0 18px 45px rgba(0, 0, 0, 0.25);
-  }
-
-  .hud-card { padding: 14px; }
-  .hud-card strong { display: block; margin-bottom: 4px; }
-  .hud-card span { color: rgba(255, 253, 248, 0.72); font-size: 13px; }
-
-  .zoom-row {
-    display: grid;
-    grid-template-columns: 36px 1fr 36px;
-    align-items: center;
-    gap: 9px;
-    margin-top: 12px;
-  }
-
-  .icon-btn {
-    width: 36px;
-    height: 36px;
-    border: 1px solid rgba(255, 253, 248, 0.22);
-    border-radius: 6px;
-    color: white;
-    background: rgba(255,255,255,0.08);
-  }
-
-  .zoom-row input { accent-color: var(--aqua); }
-
-  .station {
-    position: absolute;
-    z-index: 6;
-    left: 34px;
-    top: 34px;
-    width: min(430px, calc(100% - 68px));
-    max-height: calc(100% - 68px);
-    overflow: auto;
-    padding: 18px;
-    display: none;
-  }
-
-  .station.active { display: block; }
-  .station h3 { margin: 0 0 8px; font-size: 26px; }
-  .station p { color: rgba(255, 253, 248, 0.76); line-height: 1.45; }
-  .station-image { width: 100%; max-height: 280px; object-fit: cover; border-radius: var(--radius); margin-bottom: 12px; }
-  .image-missing {
-    display: grid;
-    place-items: center;
-    min-height: 130px;
-    border: 1px dashed rgba(255, 253, 248, 0.24);
-    border-radius: var(--radius);
-    color: rgba(255, 253, 248, 0.74);
-    text-align: center;
-    padding: 12px;
-  }
-  .thumb .image-missing {
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-    border: 0;
-    color: var(--muted);
-  }
-  .station .image-missing { margin-bottom: 12px; }
-  .station-actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 8px; margin-top: 12px; }
-  .danger {
-    border-color: rgba(217, 95, 118, 0.48);
-    color: #fff;
-    background: rgba(217, 95, 118, 0.22);
-  }
-
-  .mini-map {
-    overflow: hidden;
-    border-radius: var(--radius);
-    border: 1px solid rgba(255, 253, 248, 0.18);
-    margin-top: 12px;
-  }
-
-  .mini-map iframe {
-    display: block;
-    width: 100%;
-    height: 220px;
-    border: 0;
-  }
-
-  .views { display: none; margin-top: 22px; }
-  .views.active { display: block; }
-
-  .memory-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(245px, 1fr));
-    gap: 16px;
-  }
-
-  .gallery-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    margin-bottom: 16px;
-    padding: 12px;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: rgba(8, 12, 28, 0.68);
-    color: var(--parchment);
-  }
-
-  .gallery-toolbar strong {
-    display: block;
-    font-size: 14px;
-  }
-
-  .gallery-toolbar span {
-    color: var(--muted);
-    font-size: 12px;
-  }
-
-  .gallery-actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: flex-end;
-    gap: 8px;
-  }
-
-  .gallery-actions button {
-    min-height: 36px;
-    padding: 0 12px;
-    border-radius: var(--radius);
-    border: 1px solid var(--line);
-    color: var(--parchment);
-    background: rgba(244, 236, 216, 0.08);
-    font-weight: 700;
-  }
-
-  .gallery-actions .danger {
-    background: rgba(217, 95, 118, 0.22);
-  }
-
-  .card, .moment-card {
-    overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: var(--radius);
-    background: rgba(8, 12, 28, 0.82);
-    color: var(--parchment);
-    box-shadow: var(--shadow);
-  }
-
-  .card {
-    position: relative;
-    cursor: pointer;
-    transition: border-color 0.2s, transform 0.2s, box-shadow 0.2s;
-  }
-
-  .card.selecting {
-    cursor: pointer;
-  }
-
-  .card.selected {
-    border-color: var(--ember);
-    box-shadow:
-      0 0 0 2px rgba(244, 184, 96, 0.34),
-      var(--shadow);
-  }
-
-  .select-badge {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    z-index: 2;
-    display: grid;
-    place-items: center;
-    width: 30px;
-    height: 30px;
-    border: 1px solid rgba(244, 236, 216, 0.42);
-    border-radius: 999px;
-    color: transparent;
-    background: rgba(4, 6, 15, 0.68);
-    backdrop-filter: blur(10px);
-    font-weight: 900;
-  }
-
-  .card.selected .select-badge {
-    color: var(--night);
-    background: var(--ember);
-    border-color: var(--ember);
-  }
-
-  .thumb {
-    aspect-ratio: 4 / 3;
-    background: linear-gradient(135deg, rgba(244, 184, 96, 0.16), rgba(26, 42, 85, 0.6));
-    display: grid;
-    place-items: center;
-    color: var(--muted);
-    overflow: hidden;
-  }
-
-  .thumb img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.4s ease; }
-  .card:hover .thumb img { transform: scale(1.06); }
-  .card-body { padding: 14px; display: grid; gap: 8px; }
-  .card h3 { margin: 0; font-size: 18px; }
-  .meta { display: flex; flex-wrap: wrap; gap: 7px; color: var(--muted); font-size: 13px; }
-  .tag { display: inline-flex; padding: 4px 7px; border-radius: 999px; color: var(--night); background: var(--soft); font-size: 12px; }
-  .note { color: var(--muted); line-height: 1.45; }
-
-  .timeline { position: relative; max-width: 880px; margin: 0 auto; }
-  .timeline::before { content: ""; position: absolute; left: 18px; top: 0; bottom: 0; width: 2px; background: var(--line); }
-  .moment { position: relative; display: grid; grid-template-columns: 46px minmax(0, 1fr); gap: 16px; margin-bottom: 18px; }
-  .moment-dot { width: 38px; height: 38px; border: 7px solid var(--paper); border-radius: 50%; background: var(--aqua); z-index: 1; }
-  .moment-card { padding: 17px; }
-
-  .empty {
-    padding: 52px;
-    text-align: center;
-    color: var(--muted);
-    border: 1px dashed var(--line);
-    border-radius: var(--radius);
-    background: var(--white);
-  }
-
-  .toast {
-    position: fixed;
-    right: 22px;
-    bottom: 22px;
-    z-index: 80;
-    display: none;
-    max-width: min(360px, calc(100vw - 44px));
-    padding: 12px 14px;
-    border-radius: var(--radius);
-    color: white;
-    background: rgba(16, 21, 27, 0.92);
-    box-shadow: var(--shadow);
-    line-height: 1.35;
-  }
-
-  .toast.active { display: block; }
-  .toast.error { background: #8d3344; }
-
-  .intro {
-    position: fixed;
-    inset: 0;
-    z-index: 120;
-    display: grid;
-    place-items: center;
-    padding: 28px;
-    background: radial-gradient(ellipse at center, rgba(4, 6, 15, 0.42), #04060f 86%);
-    backdrop-filter: blur(3px);
-    transition: opacity 1.2s ease, visibility 1.2s ease;
-  }
-
-  .intro.hidden {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-
-  .intro-inner {
-    max-width: 720px;
-    text-align: center;
-  }
-
-  .intro-eyebrow {
-    margin-bottom: 34px;
-    color: var(--ember);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.34em;
-    text-transform: uppercase;
-  }
-
-  .intro h2 {
-    margin: 0;
-    font-family: var(--serif);
-    font-size: clamp(58px, 10vw, 124px);
-    font-weight: 300;
-    line-height: 0.96;
-    letter-spacing: -0.03em;
-  }
-
-  .intro h2 em {
-    display: inline-block;
-    margin: 0 0.08em;
-    color: var(--ember-soft);
-    font-style: italic;
-    font-size: 0.72em;
-    font-weight: 300;
-  }
-
-  .intro p {
-    margin: 28px auto 56px;
-    max-width: 540px;
-    color: var(--parchment-dim);
-    font-family: var(--serif);
-    font-size: clamp(18px, 2vw, 24px);
-    font-style: italic;
-  }
-
-  .intro button {
-    display: inline-flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 26px;
-    border: 1px solid rgba(244, 184, 96, 0.34);
-    border-radius: 999px;
-    color: var(--ember-soft);
-    background: rgba(244, 184, 96, 0.06);
-    font-family: var(--mono);
-    font-size: 11px;
-    letter-spacing: 0.24em;
-    text-transform: uppercase;
-  }
-
-  .intro button::before {
-    content: "";
-    width: 7px;
-    height: 7px;
-    border-radius: 50%;
-    background: var(--ember);
-    box-shadow: 0 0 16px var(--ember);
-  }
-
-  @media (min-width: 760px) {
-    body {
-      background: #070a0f;
-      overflow-x: hidden;
-    }
-
-    .app {
-      display: block;
-      min-height: 100vh;
-    }
-
-    .sidebar {
-      position: fixed;
-      z-index: 22;
-      left: 24px;
-      top: 24px;
-      width: min(350px, calc(100vw - 48px));
-      height: auto;
-      max-height: calc(100vh - 48px);
-      padding: 18px;
-      overflow: auto;
-      border: 1px solid rgba(255, 253, 248, 0.18);
-      border-radius: 8px;
-      background: rgba(8, 12, 28, 0.68);
-      box-shadow: 0 22px 70px rgba(0, 0, 0, 0.28);
-      backdrop-filter: blur(20px);
-      transition: width 0.36s ease, max-height 0.36s ease, padding 0.36s ease, background 0.36s ease;
-    }
-
-    .sidebar.collapsed {
-      width: min(226px, calc(100vw - 48px));
-      max-height: 78px;
-      overflow: hidden;
-      background: rgba(8, 12, 28, 0.5);
-    }
-
-    .sidebar.collapsed .brand {
-      margin-bottom: 0;
-      align-items: center;
-    }
-
-    .sidebar.collapsed .brand h1 {
-      font-size: 22px;
-      line-height: 0.95;
-    }
-
-    .sidebar.collapsed .search,
-    .sidebar.collapsed .tabs,
-    .sidebar.collapsed .tour-controls,
-    .sidebar.collapsed .chapter-panel,
-    .sidebar.collapsed .ai-panel {
-      display: none;
-    }
-
-    body.panel-collapsed .stage-copy {
-      left: 262px;
-      width: min(660px, calc(100% - 312px));
-    }
-
-    .brand {
-      margin-bottom: 16px;
-    }
-
-    .brand h1 {
-      font-size: 26px;
-    }
-
-    .search {
-      margin-bottom: 12px;
-    }
-
-    .tabs {
-      margin-bottom: 14px;
-    }
-
-    .tour-controls {
-      padding: 12px 0 14px;
-      margin-bottom: 14px;
-    }
-
-    .ai-panel {
-      margin-bottom: 0;
-      background: linear-gradient(180deg, rgba(8, 12, 28, 0.82), rgba(8, 12, 28, 0.62));
-    }
-
-    .main {
-      min-height: 100vh;
-      padding: 0;
-    }
-
-    .stage {
-      min-height: 100vh;
-      border-radius: 0;
-      box-shadow: none;
-    }
-
-    .stage::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 68% 42%, transparent 0 28%, rgba(4, 6, 15, 0.18) 48%, rgba(4, 6, 15, 0.58) 100%),
-        linear-gradient(90deg, rgba(7, 10, 15, 0.72), transparent 48%),
-        linear-gradient(0deg, rgba(7, 10, 15, 0.78), transparent 40%);
-    }
-
-    .hud {
-      right: 24px;
-      top: 24px;
-      width: min(330px, calc(100% - 420px));
-    }
-
-    .stage-copy {
-      left: 398px;
-      bottom: 40px;
-      z-index: 5;
-      width: min(560px, calc(100% - 450px));
-    }
-
-    .stage-copy h2 {
-      font-size: clamp(44px, 5.8vw, 82px);
-    }
-
-    .station {
-      left: auto;
-      right: 24px;
-      top: 186px;
-      width: min(390px, calc(100% - 48px));
-    }
-
-    .views.active {
-      margin-top: 0;
-      min-height: 100vh;
-      padding: 30px;
-      background: var(--paper);
-    }
-  }
-
-  @media (max-width: 759px) {
-    .app { grid-template-columns: 1fr; }
-    .sidebar { position: relative; height: auto; order: 2; }
-    .main { order: 1; padding: 18px; }
-    .stage { min-height: 690px; }
-    .stage-copy { left: 20px; bottom: 20px; width: calc(100% - 40px); }
-    .hud { left: 20px; right: 20px; top: 20px; width: auto; }
-    .station { left: 20px; top: 150px; width: calc(100% - 40px); }
-    .station-actions { grid-template-columns: 1fr; }
-    .panel-toggle { display: none; }
-    .upload-fab {
-      right: 18px;
-      bottom: 18px;
-      min-height: 48px;
-      padding: 12px 16px;
-    }
-    .upload-fab span:last-child { display: none; }
-    .upload-panel { border-radius: 22px; }
-    .upload-head,
-    .wizard-page,
-    .wizard-actions { padding-left: 22px; padding-right: 22px; }
-    .wizard-steps { margin-left: 22px; margin-right: 22px; }
-  }
-</style>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f3eee4">
+  <title>Charleen & Raoul · Zwei Anfänge, ein Zuhause</title>
+  <meta name="description" content="Die Geschichte von Charleen und Raoul.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=DM+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./story.css">
+  <script src="./story.js" defer></script>
 </head>
 <body>
-<div class="intro" id="intro">
-  <div class="intro-inner">
-    <div class="intro-eyebrow">Seit dem 2. Februar 2025</div>
-    <h2>Charleen <em>&amp;</em> Raoul</h2>
-    <p>Eine kleine Welt aus Orten, Bildern und Momenten, an denen ihr zusammen wart.</p>
-    <button id="introStart" type="button">Reise beginnen</button>
-  </div>
-</div>
-
-<div class="app">
-  <aside class="sidebar">
-    <div class="brand">
-      <h1>Charleen<br>& Raoul</h1>
-      <span class="brand-tools">
-        <span class="live"><span class="dot" id="liveDot"></span><span id="liveText">offline</span></span>
-        <button class="panel-toggle" id="panelToggle" type="button" aria-label="Navigation einklappen" title="Navigation einklappen">−</button>
-      </span>
-    </div>
-
-    <div class="search">
-      <input id="searchInput" type="search" placeholder="Orte, Daten, Bilder, Notizen suchen">
-      <select id="typeFilter" aria-label="Erinnerungstyp filtern">
-        <option value="all">Alles anzeigen</option>
-        <option value="photo">Bilder</option>
-        <option value="chat">Chats & Screenshots</option>
-        <option value="note">Notizen</option>
-        <option value="place">Orte</option>
-      </select>
-    </div>
-
-    <nav class="tabs" aria-label="Ansichten">
-      <button class="active" data-view="world">Welt</button>
-      <button data-view="gallery">Bilder</button>
-      <button data-view="timeline">Zeit</button>
-    </nav>
-
-    <div class="tour-controls">
-      <button class="primary" id="startTour" type="button">Rundgang starten</button>
-      <button class="secondary" id="playJourney" type="button">Reise abspielen</button>
-      <button class="secondary" id="resetWorld" type="button">Zur Weltkugel</button>
-      <button class="secondary" id="giftModeToggle" type="button">Geschenkmodus</button>
-    </div>
-
-    <section class="chapter-panel" aria-label="Kapitel">
-      <h2>Kapitel</h2>
-      <div class="chapter-list" id="chapterList"></div>
-    </section>
-
-    <section class="ai-panel" aria-label="KI-Suche">
-      <div>
-        <h2>KI fragen</h2>
-        <p>Frage nach Momenten, Orten, Daten oder Stimmungen. Bilder werden erst einmal nicht an die KI gesendet.</p>
+  <main class="story-shell">
+    <header class="story-header" hidden>
+      <button class="wordmark" type="button" data-go="intro" aria-label="Zurück zum Anfang">
+        <span>C</span><i></i><span>R</span>
+      </button>
+      <div class="progress" aria-label="Fortschritt">
+        <span class="progress-label">Kapitel 1 von 6</span>
+        <div class="progress-track" aria-hidden="true">
+          <i></i><i></i><i></i><i></i><i></i><i></i>
+        </div>
       </div>
-      <form class="ai-form" id="aiForm">
-        <input id="aiQuestion" type="search" placeholder="z. B. zeig mir Münster">
-        <button type="submit" aria-label="KI-Suche starten">→</button>
-      </form>
-      <div class="ai-answer" id="aiAnswer"></div>
-      <div class="ai-results" id="aiResults"></div>
-    </section>
-  </aside>
+      <span class="xp-pill" hidden><b>0</b> XP</span>
+    </header>
 
-  <main class="main">
-    <section class="stage" id="worldView">
-      <canvas id="globeStage" aria-label="Interaktive Weltkugel"></canvas>
-      <div class="hud">
-        <div class="hud-card">
-          <strong id="hudTitle">Welt der Erinnerungen</strong>
-          <span id="hudSub">Ziehen zum Drehen, scrollen zum Zoomen, Pin anklicken zum Reisen.</span>
-          <div class="zoom-row">
-            <button class="icon-btn" id="zoomOut" type="button" aria-label="Herauszoomen">−</button>
-            <input id="zoomRange" type="range" min="2.08" max="10.5" value="6.2" step="0.02" aria-label="Zoom">
-            <button class="icon-btn" id="zoomIn" type="button" aria-label="Hineinzoomen">+</button>
+    <section class="chapter chapter-intro is-active" data-chapter="intro" aria-labelledby="intro-title">
+      <div class="paper-grain"></div>
+      <div class="intro-layout">
+        <div class="intro-copy">
+          <p class="eyebrow">Für Charleen · zum Jahrestag</p>
+          <h1 id="intro-title">Eine Geschichte, die <em>eigentlich</em> zweimal angefangen hat.</h1>
+          <p class="intro-lede">Kein Herzregen, keine Geige. Nur eine erste Nachricht, ein falscher Bus und ein Zuhause, das wir damals noch nicht sehen konnten.</p>
+          <button class="primary-button" type="button" data-next>
+            Unsere Geschichte öffnen
+            <span aria-hidden="true">→</span>
+          </button>
+          <p class="tap-note">Am besten mit ein bisschen Zeit und einer Tasse Kaffee.</p>
+        </div>
+        <div class="intro-artifacts" aria-label="Drei Originalbilder vom Anfang">
+          <figure class="artifact-card artifact-one">
+            <img src="./assets/story/00000007-PHOTO-2025-01-28-23-56-23.jpg" alt="Die geschlossene Flotte Bohne am Abend">
+            <figcaption><span>28. Januar · 23:56</span>Der erste Ort im Chat</figcaption>
+          </figure>
+          <figure class="artifact-card artifact-two">
+            <img src="./assets/story/00000026-PHOTO-2025-01-29-20-30-44.jpg" alt="Frieda schläft zusammengerollt auf dem Sofa">
+            <figcaption><span>29. Januar · 20:30</span>Friedas erster Auftritt</figcaption>
+          </figure>
+          <figure class="artifact-card artifact-three">
+            <img src="./assets/story/00000070-PHOTO-2025-02-02-07-32-43.jpg" alt="Der nächtliche Park-and-Ride-Platz in Altenberge">
+            <figcaption><span>2. Februar · 07:32</span>Beweisstück Altenberge</figcaption>
+          </figure>
+        </div>
+      </div>
+      <div class="intro-line" aria-hidden="true"></div>
+    </section>
+
+    <section class="chapter chapter-chat" data-chapter="chat" aria-labelledby="chat-title">
+      <div class="chapter-scroll">
+        <div class="chapter-heading compact">
+          <p class="eyebrow">Kapitel eins · 28. Januar 2025</p>
+          <h2 id="chat-title">Die erste Nachricht</h2>
+          <p>Keine nacherzählte Version. Das hier stand wirklich so im Chat.</p>
+        </div>
+
+        <div class="phone" aria-label="Originalgetreue Auswahl aus dem WhatsApp-Chat">
+          <div class="phone-top">
+            <button type="button" aria-label="Zurück">‹</button>
+            <div class="avatar">C</div>
+            <div><strong>Charleen</strong><span>damals noch ein neuer Kontakt</span></div>
+          </div>
+          <div class="chat-date">28. Januar 2025</div>
+          <div class="messages" aria-live="polite">
+            <article class="message incoming is-visible">
+              <p>Hey Raoul:)</p>
+              <p>In welches Benefit gehst du? Am Germania Campus oder in Mecklenbeck? .. in Mecklenbeck geh ich nämlich auch.<br>Vielleicht sind wir uns ja schon mal über den Weg gelaufen 😅</p>
+              <p>Am Wochenende sieht’s bis auf Freitag bei mir ganz gut aus:) bin Samstag mit einer Freundin verabredet- aber da ist noch offen, ob Nachmittags oder abends. Mache die Entscheidung gerne von dir abhängig 😇:)</p>
+              <time>22:42</time>
+            </article>
+
+            <article class="message outgoing" hidden>
+              <p>Hey Charleen :)</p>
+              <p>Ich bin zuletzt immer in das am Germania, weil ich in Gievenbeck wohne. Aber davor immer nach Mecklenbeck, denke das mache ich auch wieder, weil ich da ganz in der Nähe auch arbeite :)</p>
+              <p>Vll sind wir uns da echt schon mal über den Weg gelaufen 😀</p>
+              <p>Also Samstag sieht bei mir auch ganz entspannt aus, habe aktuell noch gar nichts geplant ☺️ kannst also gerne direkt sagen wie es bei dir besser ist, nicht dass du da schieben musst :)</p>
+              <time>22:48</time>
+            </article>
+
+            <article class="message incoming" hidden>
+              <p>..Das werden wir Samstag herausfinden :D<br>Wo genau arbeitest Du denn?</p>
+              <p>Eigentlich müssten wir ja die Flotte Bohne ausprobieren.. Aber wenn samstag Abend noch unbelegt ist bei dir, würde ich dazu nicht nein sagen 😌</p>
+              <time>23:50</time>
+            </article>
+
+            <article class="message outgoing" hidden>
+              <p>Samstag Abend fände ich super :) bist du eher Wein oder Bier Typ? Für die flotte Bohne finden wir ja dann hoffentlich nochmal eine Gelegenheit ☺️</p>
+              <time>23:55</time>
+            </article>
+          </div>
+          <button class="reveal-chat" type="button">Nächste Nachricht</button>
+        </div>
+
+        <section class="first-days" hidden aria-labelledby="first-days-title">
+          <div class="first-days-heading">
+            <p class="eyebrow">Vier Tage · 66 Nachrichten · vor dem ersten Treffen</p>
+            <h3 id="first-days-title">Es war früh mehr als Smalltalk.</h3>
+            <p>Nicht, weil schon alles klar gewesen wäre. Sondern weil ihr euch erstaunlich schnell die Fragen gestellt habt, mit denen man wirklich etwas über einen Menschen erfährt.</p>
+          </div>
+
+          <div class="first-days-grid">
+            <article>
+              <span>01</span>
+              <h4>Was euch antreibt</h4>
+              <p>Arbeit, Ehrgeiz, Gesundheit und die Frage, wann ein Job zu viel Raum im eigenen Leben bekommt.</p>
+            </article>
+            <article>
+              <span>02</span>
+              <h4>Was ihr sucht</h4>
+              <p>Keine inszenierte Lockerheit: Ihr sagt beide offen, dass eine Nacht nicht das Ziel ist und Perspektive willkommen wäre.</p>
+            </article>
+            <article>
+              <span>03</span>
+              <h4>Wie Alltag klingt</h4>
+              <p>Bürohunde, Finn vor dem Spiegel, eine bestandene Prüfung, Lieblingsessen und ein versehentlicher Anruf im Halbschlaf.</p>
+            </article>
+          </div>
+
+          <div class="perspective-pair">
+            <blockquote>
+              „Grundsätzlich wünsche ich mir auch etwas festes. Aber ich bin nicht ‚verzweifelt‘ auf der suche.“
+              <cite>Charleen · 30. Januar, 19:27 Uhr</cite>
+            </blockquote>
+            <blockquote>
+              „Auf Sachen für eine Nacht habe ich tatsächlich auch keinen Bock, grundsätzlich suche ich schon etwas mit Perspektive.“
+              <cite>Raoul · 30. Januar, 18:50 Uhr</cite>
+            </blockquote>
+          </div>
+
+          <p class="first-days-footnote">Und dazwischen wurden die wirklich entscheidenden Dinge geklärt: Altbier, Filterkaffee, Aktivurlaub und ob ein einzelner Schlappen beim ersten Date akzeptabel ist.</p>
+        </section>
+
+        <div class="chapter-action" hidden>
+          <p>Vier Tage später wurde aus Samstagabend das erste Date.</p>
+          <button class="primary-button" type="button" data-next>Zum 1. Februar <span>→</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter chapter-date" data-chapter="date" aria-labelledby="date-title">
+      <div class="chapter-scroll">
+        <div class="chapter-heading">
+          <p class="eyebrow">Kapitel zwei · 1. Februar 2025</p>
+          <h2 id="date-title">Ein schöner Abend.<br><em>Ein ausbaufähiger Heimweg.</em></h2>
+          <p>19 Uhr vor der Mokel Bar. Ein paar Bier später begann Raouls erste kleine Odyssee dieser Geschichte.</p>
+        </div>
+
+        <div class="route-card">
+          <div class="route-map" aria-hidden="true">
+            <svg viewBox="0 0 760 390" role="img">
+              <path class="street faint" d="M-20 260 C120 190 215 270 340 210 S590 110 790 155"/>
+              <path class="street" d="M40 315 C170 305 220 225 325 230 S510 255 710 75"/>
+              <path class="river" d="M160 -20 C205 105 150 190 205 410"/>
+              <path class="route-path" d="M294 247 C390 240 470 225 535 172 S650 110 710 75"/>
+            </svg>
+            <div class="map-place mokel"><i></i><strong>Mokel Bar</strong><span>19:00 Uhr</span></div>
+            <div class="map-place center"><i></i><strong>Münster</strong></div>
+            <div class="map-place altenberge"><i></i><strong>Altenberge</strong><span>nicht der Plan</span></div>
+            <div class="moving-bus">S6</div>
+          </div>
+          <div class="route-copy">
+            <p class="eyebrow">Der tatsächliche Fehler</p>
+            <blockquote>„Das ist jetzt sooo peinlich, aber ich bin irgendwie in die S6 gestiegen, weil ich dachte es wäre schon die N85 und nicht geschaut habe.“</blockquote>
+            <button class="route-button" type="button">Bus abfahren lassen</button>
           </div>
         </div>
-      </div>
 
-      <article class="station" id="stationPanel"></article>
-
-      <div class="stage-copy" id="stageCopy">
-        <div class="kicker">Interaktiver Jahrestags-Rundgang</div>
-        <h2>Von der Erde direkt in eure Momente.</h2>
-        <div class="stats" id="stats"></div>
+        <div class="after-date" hidden>
+          <figure class="evidence-photo">
+            <img src="./assets/story/00000070-PHOTO-2025-02-02-07-32-43.jpg" alt="Park-and-Ride-Platz in Altenberge in der Nacht">
+            <figcaption><span>Originalbild · 07:32 Uhr</span>„Ein wunderschöner Park and Ride heute Nacht in Altenberge, wo mich zum Glück kurz Freunde aufgesammelt haben 🙈“</figcaption>
+          </figure>
+          <div class="mini-chat">
+            <article class="message outgoing is-visible">
+              <p>Fand es echt Mega schön mit dir heute :) hoffe du bist gut nach Hause gekommen! Ich war eben so in Gedanken, dass ich in den falschen Bus bin 😅 so doof muss man auch erstmal sein 😅 freue mich aber auf unser nächstes treffen dafür umso mehr ☺️</p>
+              <time>00:15</time>
+            </article>
+            <article class="message incoming is-visible">
+              <p>Bist du in die falsche Richtung gefahren oder sahst du auch richtig in falschen Bus? Oh man.. dann kann sich der nach Hause Weg auch mal etwas ziehen 🙉😅</p>
+              <p>Ich freue mich auch schon! 🤗</p>
+              <time>07:26</time>
+            </article>
+          </div>
+          <p class="date-punchline">Das Date war schön.<br><em>Der Heimweg war ausbaufähig.</em></p>
+          <button class="primary-button" type="button" data-next>Was danach kam <span>→</span></button>
+        </div>
       </div>
     </section>
 
-    <section class="views" id="galleryView">
-      <div class="gallery-toolbar" id="galleryToolbar"></div>
-      <div class="memory-grid" id="memoryGrid"></div>
+    <section class="chapter chapter-moments" data-chapter="moments" aria-labelledby="moments-title">
+      <div class="chapter-scroll">
+        <div class="chapter-heading">
+          <p class="eyebrow">Februar 2025</p>
+          <h2 id="moments-title">Viele kleine Male</h2>
+          <p>Kein großer Plan. Aber ein Muster: Nach jedem Treffen gab es erstaunlich schnell einen Grund für das nächste.</p>
+        </div>
+
+        <div class="early-timeline">
+          <article class="timeline-entry">
+            <div class="timeline-date"><strong>02</strong><span>Feb</span></div>
+            <div>
+              <p class="eyebrow">Der Morgen danach</p>
+              <h3>Donnerstag wird direkt festgehalten.</h3>
+              <blockquote>„Wie sieht es denn bei dir so in den nächsten Tagen aus :)“</blockquote>
+              <p>Nicht irgendwann. Nicht „man schreibt sich“. Um 07:32 Uhr fragt Raoul nach dem nächsten Treffen, um 10:23 Uhr steht der Donnerstag.</p>
+            </div>
+          </article>
+
+          <article class="timeline-entry">
+            <div class="timeline-date"><strong>03</strong><span>Feb</span></div>
+            <div>
+              <p class="eyebrow">Die wichtigen Fragen</p>
+              <h3>Wegbier, Lasagne und Tansania.</h3>
+              <blockquote>„Das Wegbier macht dich dafür noch viel mehr sympathischer 😍😍“</blockquote>
+              <p>Das Gespräch springt mühelos von Kindheitsessen zu Reisen, Arbeit und der Idee eines gemeinsamen Kochabends. Genau darin liegt eure frühe Dynamik.</p>
+            </div>
+          </article>
+
+          <article class="timeline-entry">
+            <div class="timeline-date"><strong>05</strong><span>Feb</span></div>
+            <div>
+              <p class="eyebrow">Ein kleiner Tippfehler</p>
+              <h3>„Keine Langeweile“ wird kurz zu „Sorgen“.</h3>
+              <blockquote>„Oh Gott, es sollte ‚keine Sorgen‘ heißen<br>Merke ich jetzt erst 🥲“</blockquote>
+              <p>Charleen hatte längst verstanden, wie es gemeint war. Ein unspektakulärer Moment, der zeigt, wie vertraut euer Ton schon vor dem zweiten Date geworden war.</p>
+            </div>
+          </article>
+
+          <article class="timeline-entry timeline-with-photo">
+            <div class="timeline-date"><strong>08</strong><span>Feb</span></div>
+            <div>
+              <p class="eyebrow">Eine Empfehlung wird ausprobiert</p>
+              <h3>Kardamom-Kaffee im Bethlehem Cravings.</h3>
+              <blockquote>„Nee, echt Weil was ganz anderes!😍“</blockquote>
+              <p>Orte und Empfehlungen werden nicht nur erwähnt. Sie wandern aus dem Chat in den Alltag des anderen.</p>
+            </div>
+            <img src="./assets/story/00000182-PHOTO-2025-02-08-13-27-34.jpg" alt="Kardamom-Kaffee im Bethlehem Cravings">
+          </article>
+
+          <article class="timeline-entry">
+            <div class="timeline-date"><strong>22</strong><span>Feb</span></div>
+            <div>
+              <p class="eyebrow">Neo, Finn und ein Abend, der zu kurz war</p>
+              <h3>Aus Treffen wird Beteiligung.</h3>
+              <blockquote>„Ich fand’s auch echt schön mit dir! Hätte gerne noch etwas länger sein dürfen - aber da bin ich ja selbst schuld 🙉“</blockquote>
+              <p>Am nächsten Morgen bietet Charleen Hilfe in der neuen Wohnung an. Kurz darauf stehen Blaue Lagune, Tapas und IKEA auf einer gemeinsamen Liste.</p>
+            </div>
+          </article>
+
+          <article class="timeline-entry timeline-with-photo">
+            <div class="timeline-date"><strong>02</strong><span>Mär</span></div>
+            <div>
+              <p class="eyebrow">Beide krank, trotzdem Farbe an der Wand</p>
+              <h3>Der Flur vor dem Kumpel-Kaffee.</h3>
+              <blockquote>„Ich hab echt gerne geholfen, auch wenn ich gerne länger und mehr geschafft hätte 😅“</blockquote>
+              <p>Charleen war an dieser Wohnung beteiligt, bevor ihr wusstet, welche Rolle sie später einmal spielen würde.</p>
+            </div>
+            <img src="./assets/story/00000847-PHOTO-2025-03-02-16-53-07.jpg" alt="Frisch gestrichene Wand mit Farbrolle und Eimer">
+          </article>
+        </div>
+
+        <button class="quiet-button" type="button" data-next>Weiter zum 5. März</button>
+      </div>
     </section>
 
-    <section class="views" id="timelineView">
-      <div class="timeline" id="timeline"></div>
+    <section class="chapter chapter-ending" data-chapter="ending" aria-labelledby="ending-title">
+      <div class="ending-inner">
+        <div class="ending-line" aria-hidden="true"><i></i><i></i><i></i></div>
+        <p class="eyebrow">5. März 2025 · 08:21 Uhr</p>
+        <blockquote id="ending-title">„Also ich hab für mich leider gemerkt, dass ‚der gewisse Funke‘ leider fehlt.“</blockquote>
+        <p class="ending-context">Am Vorabend hatte Raoul offen gefragt, in welche Richtung das Ganze gehen könnte. Charleen war krank, antwortete am nächsten Morgen klar und freundlich. Ihr mochtet euch. Die Zeit verging schnell. Für mehr schien es trotzdem nicht zu reichen.</p>
+        <div class="ending-facts">
+          <span>kein Streit</span>
+          <span>kein Überreden</span>
+          <span>kein Kontaktabbruch</span>
+        </div>
+        <p class="ending-thought">Manchmal sieht ein Anfang zunächst wie ein Ende aus.</p>
+        <button class="secret-button" type="button" data-next>Auf einen Kumpel Kaffee vorbeikommen</button>
+      </div>
+    </section>
+
+    <section class="chapter chapter-coffee" data-chapter="coffee" aria-labelledby="coffee-title">
+      <div class="chapter-scroll">
+        <div class="coffee-visual" aria-hidden="true">
+          <div class="steam steam-one"></div>
+          <div class="steam steam-two"></div>
+          <div class="cup">☕</div>
+          <div class="tiny-home"><i></i></div>
+        </div>
+        <div class="coffee-copy">
+          <p class="eyebrow">Der zweite Anfang</p>
+          <h2 id="coffee-title">Zum Glück war das noch nicht das Ende.</h2>
+          <div class="quote-card">
+            <p>„Ich würde vorschlagen, wenn ich in der neuen Wohnung bin, kommst du mal auf einen Kumpel Kaffee vorbei, schließlich bist du am Umzug auch beteiligt gewesen. Ist das ein Plan?“</p>
+            <time>Raoul · 5. März 2025, 19:26 Uhr</time>
+          </div>
+          <div class="coffee-answer">
+            <p>„Klingt nach einem guten Plan! ☕️:) Kumpel Café ist eigentlich ein ziemlich cooler Name für ein Kaffee 👀😅“</p>
+            <time>Charleen · 6. März 2025, 08:33 Uhr</time>
+          </div>
+          <p>Aus dem Kumpel-Kaffee wurde kein sauberer Neustart und keine große Filmszene. Ihr habt einfach weitergeredet, weitergeholfen und weiter Zeit miteinander verbracht. Gerade deshalb konnte daraus später etwas anderes werden.</p>
+          <button class="primary-button" type="button" data-next>Unser Zuhause öffnen <span>→</span></button>
+        </div>
+      </div>
+    </section>
+
+    <section class="chapter chapter-home" data-chapter="home" aria-labelledby="home-title">
+      <div class="chapter-scroll">
+        <div class="chapter-heading home-heading">
+          <p class="eyebrow">Unsere sechs Räume</p>
+          <h2 id="home-title">Willkommen bei uns.</h2>
+          <p>Jeder Raum bewahrt einen anderen Teil von dem, was aus dem Kumpel-Kaffee geworden ist. Tippe eine Tür an.</p>
+        </div>
+
+        <section class="live-tools" aria-labelledby="live-tools-title">
+          <div class="live-tools-heading">
+            <p class="eyebrow">Ab jetzt wirklich bewohnt</p>
+            <h3 id="live-tools-title">Unsere Pinnwand</h3>
+            <p>Einfach etwas anheften. Ohne Konten, Zuständigkeiten oder unnötigen Ernst.</p>
+          </div>
+          <div class="live-tool-grid">
+            <button class="live-tool grocery-tool" type="button" data-open-tool="grocery">
+              <span class="live-tool-icon" aria-hidden="true">🛒</span>
+              <span>
+                <strong>Die Hit-Liste</strong>
+                <small><b class="grocery-open-count">0</b> Wünsche warten</small>
+              </span>
+              <i aria-hidden="true">öffnen →</i>
+            </button>
+            <button class="live-tool household-tool" type="button" data-open-tool="household">
+              <span class="live-tool-icon" aria-hidden="true">📸</span>
+              <span>
+                <strong>Fundstück des Tages</strong>
+                <small><b class="household-open-count">0</b> Hinweise offen</small>
+              </span>
+              <i aria-hidden="true">melden →</i>
+            </button>
+          </div>
+        </section>
+
+        <div class="apartment">
+          <button class="room kitchen" type="button" data-room="kitchen">
+            <span class="room-art kitchen-art" aria-hidden="true">
+              <span class="window"></span><span class="wall-cabinet"></span><span class="counter"></span>
+              <span class="oven"></span><span class="coffee-machine">☕</span><span class="fridge"></span><span class="table"></span>
+            </span>
+            <span class="room-icon" aria-hidden="true">☕</span><strong>Küche</strong><small>Kaffee, Döner & Kochen</small><i>eintreten →</i>
+          </button>
+          <button class="room animals" type="button" data-room="animals">
+            <span class="room-art animals-art" aria-hidden="true">
+              <span class="sun-window"></span><span class="cat-tree"></span><span class="cat-bed"></span>
+              <span class="dog-bed"></span><span class="bowls"></span><span class="pet-shelf"></span>
+            </span>
+            <span class="room-icon" aria-hidden="true">🐾</span><strong>Tierecke</strong><small>Frieda, Neo & Finn</small><i>eintreten →</i>
+          </button>
+          <button class="room living" type="button" data-room="living">
+            <span class="room-art living-art" aria-hidden="true">
+              <span class="picture"></span><span class="tv"></span><span class="console"></span>
+              <span class="sofa"></span><span class="cushion"></span><span class="coffee-table"></span><span class="floor-lamp"></span>
+            </span>
+            <span class="room-icon" aria-hidden="true">▱</span><strong>Wohnzimmer</strong><small>Serien & Quality Time</small><i>eintreten →</i>
+          </button>
+          <button class="room hallway" type="button" data-room="hallway">
+            <span class="room-art hallway-art" aria-hidden="true">
+              <span class="door"></span><span class="mirror"></span><span class="coat-rack"></span>
+              <span class="bench"></span><span class="shoes"></span><span class="keys">⌕</span>
+            </span>
+            <span class="room-icon" aria-hidden="true">⌕</span><strong>Flur</strong><small>Schlüssel & Ankommen</small><i>eintreten →</i>
+          </button>
+          <button class="room projects" type="button" data-room="projects">
+            <span class="room-art projects-art" aria-hidden="true">
+              <span class="shelves"></span><span class="box box-one"></span><span class="box box-two"></span>
+              <span class="workbench"></span><span class="toolboard"></span><span class="ladder"></span>
+            </span>
+            <span class="room-icon" aria-hidden="true">⌁</span><strong>Projekte</strong><small>IKEA, Autos & Spülmaschine</small><i>eintreten →</i>
+          </button>
+          <button class="room future" type="button" data-room="future">
+            <span class="room-art future-art" aria-hidden="true">
+              <span class="big-window"></span><span class="plant"></span><span class="suitcase"></span>
+              <span class="map"></span><span class="chair"></span><span class="stars">✦</span>
+            </span>
+            <span class="room-icon" aria-hidden="true">↗</span><strong>Was vor uns liegt</strong><small>Reisen, Ziele & neue Kapitel</small><i>eintreten →</i>
+          </button>
+        </div>
+
+        <div class="prototype-note">
+          <strong>Ein Zuhause mit offenen Türen</strong>
+          <p>Die Zitate stammen aus eurem Chat. Die kurzen Texte dazwischen erzählen nur, was sich darin längst gezeigt hat.</p>
+          <button class="quiet-button" type="button" data-go="intro">Geschichte noch einmal ansehen</button>
+        </div>
+
+        <section class="room-detail" hidden aria-live="polite">
+          <button class="back-home" type="button">← Zurück zur Wohnung</button>
+          <div class="room-detail-hero">
+            <div>
+              <p class="eyebrow room-kicker"></p>
+              <h3 class="room-title"></h3>
+              <p class="room-intro"></p>
+            </div>
+            <div class="room-symbol" aria-hidden="true"></div>
+          </div>
+          <div class="room-memory-grid"></div>
+          <div class="room-extra"></div>
+          <button class="quiet-button back-home-bottom" type="button">Alle Räume ansehen</button>
+        </section>
+      </div>
     </section>
   </main>
-</div>
 
-<button class="upload-fab" id="openUploadFab" type="button" aria-label="Neue Erinnerung hinzufügen">
-  <span class="fab-icon">+</span>
-  <span>Erinnerung hinzufügen</span>
-</button>
+  <dialog class="memory-dialog">
+    <button class="dialog-close" type="button" aria-label="Erinnerung schließen">×</button>
+    <p class="eyebrow dialog-date"></p>
+    <h3 class="dialog-title"></h3>
+    <blockquote class="dialog-quote"></blockquote>
+    <p class="dialog-note"></p>
+    <span class="dialog-author"></span>
+  </dialog>
 
-<div class="toast" id="toast" role="status" aria-live="polite"></div>
-
-<div class="upload-modal" id="uploadModal">
-  <div class="upload-panel">
-    <div class="upload-head">
-      <div>
-        <h2>Neue Erinnerung</h2>
-        <p>Ich führe dich durch Upload, Metadaten und Einordnung.</p>
-      </div>
-      <button class="secondary" id="closeUpload" type="button">Schließen</button>
-    </div>
-
-    <div class="wizard-steps">
-      <div class="wizard-step active" data-step-label="1">1 · Dateien</div>
-      <div class="wizard-step" data-step-label="2">2 · Daten</div>
-      <div class="wizard-step" data-step-label="3">3 · Speichern</div>
-    </div>
-
-    <form class="memory-form" id="memoryForm">
-      <section class="wizard-page active" data-step="1">
-        <label class="dropzone" id="dropzone">
-          <input id="fileInput" name="files" type="file" multiple accept="image/*,.heic,.heif,.pdf,.txt">
-          <span><strong>Bilder oder Screenshots hochladen</strong><span id="fileLabel">Dateien hier ablegen oder auswaehlen</span></span>
+  <dialog class="tool-dialog grocery-dialog">
+    <button class="dialog-close tool-close" type="button" aria-label="Hit-Liste schließen">×</button>
+    <p class="eyebrow">Küche · gemeinsam einkaufen</p>
+    <h2>Die Hit-Liste</h2>
+    <p class="tool-lede">Für alles, was beim nächsten Abstecher nicht vergessen werden sollte. Einfach anheften.</p>
+    <form class="grocery-form">
+      <label>
+        Was soll mit?
+        <input name="item" required maxlength="80" placeholder="Zum Beispiel: Rippchen">
+      </label>
+      <div class="form-row">
+        <label>
+          Menge
+          <input name="amount" maxlength="30" placeholder="1 Packung">
         </label>
-        <div class="geo-status" id="geoStatus"></div>
-      </section>
-
-      <section class="wizard-page" data-step="2">
-        <input name="title" placeholder="Titel">
-        <div class="form-grid">
-          <input name="date" type="date">
-          <select name="type">
-            <option value="photo">Bild</option>
-            <option value="chat">Chat</option>
-            <option value="note">Notiz</option>
-            <option value="place">Ort</option>
+        <label>
+          Wichtigkeit
+          <select name="priority">
+            <option value="wish">Wäre schön</option>
+            <option value="needed">Wirklich nötig</option>
+            <option value="kater">Katerbauch-Wunsch</option>
           </select>
-        </div>
-        <input name="place" placeholder="Ort, z. B. Münster">
-        <div class="form-grid">
-          <input name="lat" inputmode="decimal" placeholder="Breite">
-          <input name="lng" inputmode="decimal" placeholder="Laenge">
-        </div>
-        <input name="tags" placeholder="Tags, durch Komma getrennt">
-        <textarea name="note" rows="4" placeholder="Was soll hier nicht verloren gehen?"></textarea>
-      </section>
-
-      <section class="wizard-page" data-step="3">
-        <div class="geo-status active" id="reviewStatus">Prüfe kurz Ort, Datum und Notiz. Danach landet die Erinnerung direkt im Rundgang.</div>
-      </section>
-
-      <div class="selected-previews" id="selectedPreviews"></div>
-
-      <div class="wizard-actions">
-        <button class="secondary" id="wizardBack" type="button">Zurück</button>
-        <button class="secondary" id="wizardNext" type="button">Weiter</button>
-        <button class="primary" id="wizardSave" type="submit">Erinnerung speichern</button>
+        </label>
       </div>
+      <button class="primary-button" type="submit">Auf die Liste setzen <span>＋</span></button>
     </form>
-  </div>
-</div>
+    <div class="tool-list grocery-list" aria-live="polite"></div>
+  </dialog>
 
-<div class="upload-modal" id="editModal">
-  <div class="upload-panel">
-    <div class="upload-head">
-      <div>
-        <h2>Erinnerung bearbeiten</h2>
-        <p>Titel, Ort, Datum, Tags und Notiz anpassen.</p>
-      </div>
-      <button class="secondary" id="closeEdit" type="button">Schließen</button>
-    </div>
-    <form class="memory-form" id="editForm">
-      <section class="wizard-page active">
-        <input name="title" placeholder="Titel">
-        <div class="form-grid">
-          <input name="date" type="date">
-          <select name="type">
-            <option value="photo">Bild</option>
-            <option value="chat">Chat</option>
-            <option value="note">Notiz</option>
-            <option value="place">Ort</option>
+  <dialog class="tool-dialog household-dialog">
+    <button class="dialog-close tool-close" type="button" aria-label="Haushalts-Melder schließen">×</button>
+    <p class="eyebrow">Die freundliche Beweisaufnahme</p>
+    <h2>Fundstück des Tages</h2>
+    <p class="tool-lede">Ein Foto, ein freundlicher Hinweis und hoffentlich bald ein gelöstes Problem.</p>
+    <form class="household-form">
+      <label class="photo-picker">
+        <input name="photo" type="file" accept="image/*">
+        <span class="photo-preview"><b>📷</b> Beweisfoto hinzufügen</span>
+      </label>
+      <label>
+        Was ist hier passiert?
+        <input name="task" required maxlength="100" placeholder="Zum Beispiel: Spülmaschine ausräumen">
+      </label>
+      <div class="form-row">
+        <label>
+          Tatort
+          <select name="room">
+            <option>Küche</option>
+            <option>Wohnzimmer</option>
+            <option>Flur</option>
+            <option>Bad</option>
+            <option>Schlafzimmer</option>
+            <option>Tierecke</option>
           </select>
-        </div>
-        <input name="place" placeholder="Ort">
-        <div class="form-grid">
-          <input name="lat" inputmode="decimal" placeholder="Breite">
-          <input name="lng" inputmode="decimal" placeholder="Laenge">
-        </div>
-        <input name="tags" placeholder="Tags, durch Komma getrennt">
-        <textarea name="note" rows="5" placeholder="Notiz"></textarea>
-        <input name="id" type="hidden">
-      </section>
-      <div class="wizard-actions">
-        <button class="secondary" id="cancelEdit" type="button">Abbrechen</button>
-        <button class="primary" id="saveEdit" type="submit">Speichern</button>
+        </label>
+        <label>
+          Tonlage
+          <select name="tone">
+            <option>Kleine Erinnerung</option>
+            <option>Heute wäre wirklich gut</option>
+            <option>Raoul. Ernsthaft.</option>
+            <option>Kannst du das übernehmen?</option>
+          </select>
+        </label>
       </div>
+      <button class="primary-button" type="submit">Fundstück melden <span>＋</span></button>
     </form>
-  </div>
-</div>
+    <div class="tool-list household-list" aria-live="polite"></div>
+  </dialog>
 
-<script type="module">
-import * as THREE from "./assets/three.module.js";
-
-const MIN_GLOBE_ZOOM = 2.08;
-const MAX_GLOBE_ZOOM = 10.5;
-const DEFAULT_GLOBE_ZOOM = 6.2;
-const MEMORY_GLOBE_ZOOM = 2.16;
-const APPROXIMATE_GLOBE_ZOOM = 4.2;
-
-const state = {
-  memories: [],
-  filtered: [],
-  selectedId: null,
-  tourIndex: -1,
-  isDragging: false,
-  downPointer: null,
-  lastPointer: null,
-  targetDistance: DEFAULT_GLOBE_ZOOM,
-  cameraDistance: DEFAULT_GLOBE_ZOOM,
-  targetQuaternion: new THREE.Quaternion(),
-  globeQuaternion: new THREE.Quaternion(),
-  autoRotate: true,
-  aiBusy: false,
-  uploadPreviewUrls: [],
-  toastTimer: 0,
-  gallerySelectMode: false,
-  selectedGalleryIds: new Set(),
-  journeyTimer: 0,
-  journeyPlaying: false,
-  pins: [],
-  pathLines: [],
-  raycaster: new THREE.Raycaster(),
-  pointer: new THREE.Vector2(),
-};
-
-const el = (id) => document.getElementById(id);
-const isImage = (file) => file?.mime?.startsWith("image/") || [".heic", ".heif"].some((ext) => String(file?.name || "").toLowerCase().endsWith(ext));
-const canDisplayOriginal = (file) => {
-  const name = String(file?.name || "").toLowerCase();
-  const mime = String(file?.mime || "").toLowerCase();
-  const browserImageExt = [".jpg", ".jpeg", ".png", ".webp", ".gif"].some((ext) => name.endsWith(ext));
-  return (mime.startsWith("image/") || browserImageExt) && !["image/heic", "image/heif"].includes(mime) && !name.endsWith(".heic") && !name.endsWith(".heif");
-};
-const imageFile = (memory) => {
-  const images = (memory.files || []).filter(isImage);
-  return images.find((file) => file.previewUrl) || images.find(canDisplayOriginal) || images[0];
-};
-const imageUrl = (file) => file ? (file.previewUrl || file.url || "") : "";
-const fmtDate = (date) => date ? new Intl.DateTimeFormat("de-DE", { dateStyle: "medium" }).format(new Date(`${date}T12:00:00`)) : "ohne Datum";
-const HEIC_CONVERTER_URL = "https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js";
-
-const knownPlaces = {
-  berlin: { lat: 52.52, lng: 13.405 },
-  hamburg: { lat: 53.5511, lng: 9.9937 },
-  muenster: { lat: 51.9607, lng: 7.6261 },
-  münster: { lat: 51.9607, lng: 7.6261 },
-  muenchen: { lat: 48.1372, lng: 11.5755 },
-  münchen: { lat: 48.1372, lng: 11.5755 },
-  koeln: { lat: 50.9375, lng: 6.9603 },
-  köln: { lat: 50.9375, lng: 6.9603 },
-  duesseldorf: { lat: 51.2277, lng: 6.7735 },
-  düsseldorf: { lat: 51.2277, lng: 6.7735 },
-  frankfurt: { lat: 50.1109, lng: 8.6821 },
-  gent: { lat: 51.0543, lng: 3.7174 },
-  ghent: { lat: 51.0543, lng: 3.7174 },
-  "gent belgien": { lat: 51.0543, lng: 3.7174 },
-  "gent belgium": { lat: 51.0543, lng: 3.7174 },
-};
-
-function placeKey(place) {
-  return String(place || "").toLowerCase().replace(/[,\s]+/g, " ").trim();
-}
-
-function escapeHtml(value) {
-  return String(value || "").replace(/[&<>"']/g, (char) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#039;"
-  }[char]));
-}
-
-function showToast(message, type = "ok") {
-  const toast = el("toast");
-  toast.textContent = message;
-  toast.classList.toggle("error", type === "error");
-  toast.classList.add("active");
-  window.clearTimeout(state.toastTimer);
-  state.toastTimer = window.setTimeout(() => toast.classList.remove("active"), 3600);
-}
-
-async function responseErrorMessage(response) {
-  const text = await response.text().catch(() => "");
-  try {
-    const data = JSON.parse(text);
-    return data.error || data.message || text || `HTTP ${response.status}`;
-  } catch {
-    const plain = text.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-    return plain.slice(0, 180) || `HTTP ${response.status}`;
-  }
-}
-
-function imageMarkup(file, className, alt) {
-  const src = imageUrl(file);
-  if (!src) return `<div class="image-missing">Keine Browser-Vorschau verfuegbar</div>`;
-  const fallback = file?.previewUrl && canDisplayOriginal(file) ? file.url : "";
-  return `<img class="${className}" src="${src}" alt="${escapeHtml(alt)}" data-fallback="${escapeHtml(fallback)}">`;
-}
-
-function isHeicFile(file) {
-  const name = String(file?.name || "").toLowerCase();
-  const mime = String(file?.type || file?.mime || "").toLowerCase();
-  return mime === "image/heic" || mime === "image/heif" || name.endsWith(".heic") || name.endsWith(".heif");
-}
-
-async function loadHeicConverter() {
-  if (window.heic2any) return window.heic2any;
-  await new Promise((resolve, reject) => {
-    const existing = document.querySelector(`script[src="${HEIC_CONVERTER_URL}"]`);
-    if (existing) {
-      existing.addEventListener("load", resolve, { once: true });
-      existing.addEventListener("error", reject, { once: true });
-      return;
-    }
-    const script = document.createElement("script");
-    script.src = HEIC_CONVERTER_URL;
-    script.async = true;
-    script.onload = resolve;
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-  return window.heic2any;
-}
-
-function wireImageFallbacks(scope = document) {
-  scope.querySelectorAll("img[data-fallback]").forEach((img) => {
-    img.addEventListener("error", () => {
-      const fallback = img.dataset.fallback;
-      if (fallback && img.src !== new URL(fallback, location.href).href) {
-        img.src = fallback;
-        img.dataset.fallback = "";
-        return;
-      }
-      const missing = document.createElement("div");
-      missing.className = "image-missing";
-      missing.textContent = "Vorschau nicht verfuegbar";
-      img.replaceWith(missing);
-    }, { once: true });
-  });
-}
-
-function memoryGeo(memory) {
-  const known = knownPlaces[placeKey(memory.place)];
-  if (known) return { ...known, approximate: false };
-  if (Number.isFinite(memory.lat) && Number.isFinite(memory.lng)) return { lat: memory.lat, lng: memory.lng, approximate: false };
-  return { lat: 0, lng: 0, approximate: true };
-}
-
-function latLngVector(lat, lng, radius = 2.05) {
-  const latRad = THREE.MathUtils.degToRad(lat);
-  const lngRad = THREE.MathUtils.degToRad(lng);
-  return new THREE.Vector3(
-    radius * Math.cos(latRad) * Math.cos(lngRad),
-    radius * Math.sin(latRad),
-    -radius * Math.cos(latRad) * Math.sin(lngRad)
-  );
-}
-
-function cityMapEmbed(memory) {
-  const geo = memoryGeo(memory);
-  if (geo.approximate) return "";
-  const lat = Number(geo.lat);
-  const lng = Number(geo.lng);
-  const delta = 0.018;
-  const bbox = [(lng - delta).toFixed(5), (lat - delta).toFixed(5), (lng + delta).toFixed(5), (lat + delta).toFixed(5)].join(",");
-  const marker = `${lat.toFixed(5)},${lng.toFixed(5)}`;
-  return `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(bbox)}&layer=mapnik&marker=${encodeURIComponent(marker)}`;
-}
-
-const canvas = el("globeStage");
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera(38, 1, 0.005, 100);
-const globeGroup = new THREE.Group();
-scene.add(globeGroup);
-
-scene.add(new THREE.AmbientLight(0xffffff, 0.45));
-const sun = new THREE.DirectionalLight(0xffffff, 2.2);
-sun.position.set(-4, 3, 5);
-scene.add(sun);
-
-const loader = new THREE.TextureLoader();
-const maxTextureAnisotropy = renderer.capabilities.getMaxAnisotropy();
-function tuneEarthTexture(texture) {
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.anisotropy = maxTextureAnisotropy;
-  texture.minFilter = THREE.LinearMipmapLinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = true;
-  texture.needsUpdate = true;
-  return texture;
-}
-const earthTexture = tuneEarthTexture(loader.load("/assets/earth-day.jpg"));
-
-const earth = new THREE.Mesh(
-  new THREE.SphereGeometry(2, 128, 128),
-  new THREE.MeshStandardMaterial({
-    map: earthTexture,
-    roughness: 0.82,
-    metalness: 0.02,
-  })
-);
-globeGroup.add(earth);
-
-const atmosphere = new THREE.Mesh(
-  new THREE.SphereGeometry(2.035, 128, 128),
-  new THREE.MeshBasicMaterial({
-    color: 0x83dff2,
-    transparent: true,
-    opacity: 0.12,
-    blending: THREE.AdditiveBlending,
-    side: THREE.BackSide,
-  })
-);
-globeGroup.add(atmosphere);
-
-const stars = new THREE.Points(
-  new THREE.BufferGeometry().setAttribute("position", new THREE.Float32BufferAttribute(
-    Array.from({ length: 900 }, () => THREE.MathUtils.randFloatSpread(80)), 3
-  )),
-  new THREE.PointsMaterial({ color: 0xffffff, size: 0.018, transparent: true, opacity: 0.48 })
-);
-scene.add(stars);
-
-function resizeRenderer() {
-  const rect = canvas.getBoundingClientRect();
-  const width = Math.max(1, Math.floor(rect.width));
-  const height = Math.max(1, Math.floor(rect.height));
-  const targetWidth = Math.floor(width * renderer.getPixelRatio());
-  const targetHeight = Math.floor(height * renderer.getPixelRatio());
-  if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
-    renderer.setSize(width, height, false);
-  }
-  camera.aspect = rect.width / rect.height;
-  camera.updateProjectionMatrix();
-}
-
-function setView(view) {
-  document.querySelectorAll(".tabs button").forEach((button) => button.classList.toggle("active", button.dataset.view === view));
-  document.querySelectorAll(".views").forEach((section) => section.classList.remove("active"));
-  if (view !== "world") el(`${view}View`).classList.add("active");
-  el("worldView").style.display = view === "world" ? "block" : "none";
-  if (view !== "gallery") clearGallerySelection();
-}
-
-async function loadMemories() {
-  const q = encodeURIComponent(el("searchInput").value.trim());
-  const type = encodeURIComponent(el("typeFilter").value);
-  const response = await fetch(`/api/memories?q=${q}&type=${type}`);
-  state.memories = await response.json();
-  state.filtered = state.memories;
-  render();
-}
-
-function connectEvents() {
-  const localHostnames = new Set(["localhost", "127.0.0.1", "::1"]);
-  if (!localHostnames.has(location.hostname)) {
-    el("liveDot").classList.add("on");
-    el("liveText").textContent = "online";
-    return;
-  }
-  const stream = new EventSource("/events");
-  stream.onopen = () => {
-    el("liveDot").classList.add("on");
-    el("liveText").textContent = "live";
-  };
-  stream.onerror = () => {
-    el("liveDot").classList.remove("on");
-    el("liveText").textContent = "verbindet";
-  };
-  stream.addEventListener("init", loadMemories);
-  stream.addEventListener("memoriesUpdated", loadMemories);
-}
-
-function render() {
-  renderStats();
-  renderChapters();
-  renderGallery();
-  renderTimeline();
-  renderPins();
-  updateHud();
-}
-
-function renderStats() {
-  const images = state.filtered.reduce((sum, memory) => sum + (memory.files || []).filter((file) => file.mime.startsWith("image/")).length, 0);
-  const places = new Set(state.filtered.map((memory) => memory.place).filter(Boolean)).size;
-  el("stats").innerHTML = `
-    <span class="stat"><b>${state.filtered.length}</b> Erinnerungen</span>
-    <span class="stat"><b>${images}</b> Bilder</span>
-    <span class="stat"><b>${places}</b> Orte</span>
-  `;
-}
-
-function memoryChapters(memories = state.filtered) {
-  const chapters = [
-    { id: "firsts", label: "Erste Male", test: (m) => /erst|anfang|erstes|erst/i.test(`${m.title} ${m.note} ${(m.tags || []).join(" ")}`) },
-    { id: "travel", label: "Reisen", test: (m) => /reise|trip|urlaub|hotel|bahn|flug|meer|belgien|gent|muenster|münster/i.test(`${m.place} ${m.title} ${m.note} ${(m.tags || []).join(" ")}`) },
-    { id: "birthdays", label: "Geburtstage", test: (m) => /geburtstag|birthday/i.test(`${m.title} ${m.note} ${(m.tags || []).join(" ")}`) },
-    { id: "everyday", label: "Alltag", test: () => true },
-  ];
-  return chapters.map((chapter) => ({
-    ...chapter,
-    memories: memories.filter(chapter.test),
-  })).filter((chapter) => chapter.memories.length);
-}
-
-function renderChapters() {
-  const chapters = memoryChapters();
-  if (!chapters.length) {
-    el("chapterList").innerHTML = `<div class="empty">Kapitel entstehen automatisch aus Orten, Tags und Notizen.</div>`;
-    return;
-  }
-  el("chapterList").innerHTML = chapters.map((chapter) => `
-    <button class="chapter-pill" type="button" data-chapter="${chapter.id}">
-      ${escapeHtml(chapter.label)}
-      <span>${chapter.memories.length}</span>
-    </button>
-  `).join("");
-  document.querySelectorAll(".chapter-pill[data-chapter]").forEach((button) => {
-    button.addEventListener("click", () => startChapter(button.dataset.chapter));
-  });
-}
-
-function renderGallery() {
-  renderGalleryToolbar();
-  if (!state.filtered.length) {
-    el("memoryGrid").innerHTML = `<div class="empty">Noch nichts gefunden. Lade die erste Erinnerung hoch oder aendere die Suche.</div>`;
-    return;
-  }
-  state.selectedGalleryIds.forEach((id) => {
-    if (!state.filtered.some((memory) => memory.id === id)) state.selectedGalleryIds.delete(id);
-  });
-  el("memoryGrid").innerHTML = state.filtered.map((memory) => {
-    const img = imageFile(memory);
-    const selected = state.selectedGalleryIds.has(memory.id);
-    return `
-      <article class="card ${state.gallerySelectMode ? "selecting" : ""} ${selected ? "selected" : ""}" data-memory="${memory.id}">
-        ${state.gallerySelectMode ? `<span class="select-badge" aria-hidden="true">${selected ? "✓" : ""}</span>` : ""}
-        <div class="thumb">${img ? imageMarkup(img, "", memory.title) : "Noch kein Bild"}</div>
-        <div class="card-body">
-          <h3>${escapeHtml(memory.title)}</h3>
-          <div class="meta"><span>${fmtDate(memory.date)}</span><span>${escapeHtml(memory.place)}</span></div>
-          <div>${(memory.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join(" ")}</div>
-          <p class="note">${escapeHtml(memory.note).slice(0, 170)}</p>
-        </div>
-      </article>
-    `;
-  }).join("");
-  document.querySelectorAll(".card[data-memory]").forEach((card) => {
-    card.addEventListener("click", () => {
-      if (state.gallerySelectMode) {
-        toggleGallerySelection(card.dataset.memory);
-        return;
-      }
-      goToMemory(card.dataset.memory, { openStation: true });
-    });
-  });
-  wireImageFallbacks(el("memoryGrid"));
-}
-
-function renderGalleryToolbar() {
-  const count = state.selectedGalleryIds.size;
-  el("galleryToolbar").innerHTML = `
-    <div>
-      <strong>${state.gallerySelectMode ? `${count} markiert` : "Bilder verwalten"}</strong>
-      <span>${state.gallerySelectMode ? "Markiere mehrere Erinnerungen und lösche sie gesammelt." : "Auswahlmodus aktivieren, um mehrere Bilder zu löschen."}</span>
-    </div>
-    <div class="gallery-actions">
-      ${state.gallerySelectMode ? `
-        <button type="button" id="selectAllGallery">Alle markieren</button>
-        <button type="button" id="clearGallerySelection">Abbrechen</button>
-        <button class="danger" type="button" id="deleteSelectedGallery" ${count ? "" : "disabled"}>${count || ""} löschen</button>
-      ` : `
-        <button type="button" id="startGallerySelection">Auswählen</button>
-      `}
-    </div>
-  `;
-  el("startGallerySelection")?.addEventListener("click", startGallerySelection);
-  el("selectAllGallery")?.addEventListener("click", selectAllGallery);
-  el("clearGallerySelection")?.addEventListener("click", clearGallerySelection);
-  el("deleteSelectedGallery")?.addEventListener("click", deleteSelectedGallery);
-}
-
-function startGallerySelection() {
-  state.gallerySelectMode = true;
-  state.selectedGalleryIds.clear();
-  renderGallery();
-}
-
-function toggleGallerySelection(id) {
-  if (state.selectedGalleryIds.has(id)) state.selectedGalleryIds.delete(id);
-  else state.selectedGalleryIds.add(id);
-  renderGallery();
-}
-
-function selectAllGallery() {
-  state.filtered.forEach((memory) => state.selectedGalleryIds.add(memory.id));
-  renderGallery();
-}
-
-function clearGallerySelection() {
-  if (!state.gallerySelectMode && !state.selectedGalleryIds.size) return;
-  state.gallerySelectMode = false;
-  state.selectedGalleryIds.clear();
-  if (el("galleryToolbar")) renderGallery();
-}
-
-function renderTimeline() {
-  if (!state.filtered.length) {
-    el("timeline").innerHTML = `<div class="empty">Die Zeitleiste fuellt sich mit euren Erinnerungen.</div>`;
-    return;
-  }
-  el("timeline").innerHTML = state.filtered.map((memory) => `
-    <article class="moment" data-memory="${memory.id}">
-      <div class="moment-dot"></div>
-      <div class="moment-card">
-        <div class="meta">${fmtDate(memory.date)} · ${escapeHtml(memory.place)}</div>
-        <h3>${escapeHtml(memory.title)}</h3>
-        <p class="note">${escapeHtml(memory.note)}</p>
-      </div>
-    </article>
-  `).join("");
-  document.querySelectorAll(".moment[data-memory]").forEach((item) => {
-    item.addEventListener("click", () => goToMemory(item.dataset.memory, { openStation: true }));
-  });
-}
-
-function renderAiResults(memories) {
-  el("aiResults").innerHTML = (memories || []).map((memory) => {
-    const img = imageFile(memory);
-    return `
-      <button class="ai-result" type="button" data-memory="${memory.id}">
-        ${img && imageUrl(img) ? imageMarkup(img, "", memory.title) : `<span class="ai-result-fallback">•</span>`}
-        <span>
-          <strong>${escapeHtml(memory.title || "Erinnerung")}</strong>
-          <span>${fmtDate(memory.date)} · ${escapeHtml(memory.place || "Ort offen")}</span>
-        </span>
-      </button>
-    `;
-  }).join("");
-  document.querySelectorAll(".ai-result[data-memory]").forEach((button) => {
-    button.addEventListener("click", () => goToMemory(button.dataset.memory, { openStation: true }));
-  });
-  wireImageFallbacks(el("aiResults"));
-}
-
-async function askAi(question) {
-  if (state.aiBusy) return;
-  state.aiBusy = true;
-  el("aiAnswer").classList.add("active");
-  el("aiAnswer").innerHTML = `
-    <div class="ai-answer-label">KI denkt</div>
-    <div class="ai-answer-text"><span class="ai-thinking"><span></span><span></span><span></span></span></div>
-  `;
-  el("aiResults").innerHTML = "";
-
-  try {
-    const response = await fetch("/api/ai-search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Die KI-Suche ist gerade nicht erreichbar.");
-    const source = data.source === "gemini" ? "Gemini" : "lokale Suche";
-    el("aiAnswer").innerHTML = `
-      <div class="ai-answer-label">KI Antwort · ${escapeHtml(source)}</div>
-      <div class="ai-answer-text">${escapeHtml(data.answer)}</div>
-    `;
-    renderAiResults(data.memories || []);
-    if (data.memories?.[0]?.id) goToMemory(data.memories[0].id);
-  } catch (error) {
-    el("aiAnswer").innerHTML = `
-      <div class="ai-answer-label">KI Antwort</div>
-      <div class="ai-answer-text">${escapeHtml(error.message)}</div>
-    `;
-  } finally {
-    state.aiBusy = false;
-  }
-}
-
-function markerTexture(selected = false) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 96;
-  canvas.height = 128;
-  const ctx = canvas.getContext("2d");
-  const accent = selected ? "#ff6f8a" : "#fffdf8";
-  const glow = selected ? "rgba(255,111,138,0.42)" : "rgba(255,253,248,0.26)";
-
-  const gradient = ctx.createRadialGradient(48, 42, 2, 48, 42, 34);
-  gradient.addColorStop(0, glow);
-  gradient.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = gradient;
-  ctx.beginPath();
-  ctx.arc(48, 42, 36, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = selected ? "rgba(255,111,138,0.95)" : "rgba(255,253,248,0.82)";
-  ctx.lineWidth = selected ? 5 : 4;
-  ctx.lineCap = "round";
-  ctx.beginPath();
-  ctx.moveTo(48, 50);
-  ctx.lineTo(48, 102);
-  ctx.stroke();
-
-  ctx.fillStyle = accent;
-  ctx.beginPath();
-  ctx.arc(48, 38, selected ? 12 : 9, 0, Math.PI * 2);
-  ctx.fill();
-
-  ctx.strokeStyle = "rgba(16,21,27,0.55)";
-  ctx.lineWidth = 3;
-  ctx.beginPath();
-  ctx.arc(48, 38, selected ? 12 : 9, 0, Math.PI * 2);
-  ctx.stroke();
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  return texture;
-}
-
-function createMemoryMarker(memory, geo) {
-  const selected = memory.id === state.selectedId;
-  const material = new THREE.SpriteMaterial({
-    map: markerTexture(selected),
-    transparent: true,
-    depthTest: true,
-    depthWrite: false,
-  });
-  const marker = new THREE.Sprite(material);
-  marker.position.copy(latLngVector(geo.lat, geo.lng, 2.14));
-  marker.scale.set(selected ? 0.22 : 0.16, selected ? 0.29 : 0.21, 1);
-  marker.center.set(0.5, 0.18);
-  marker.userData.memoryId = memory.id;
-  return marker;
-}
-
-function renderPins() {
-  state.pins.forEach((pin) => {
-    globeGroup.remove(pin);
-    pin.material?.map?.dispose?.();
-    pin.material?.dispose?.();
-  });
-  state.pathLines.forEach((line) => {
-    globeGroup.remove(line);
-    line.geometry?.dispose?.();
-    line.material?.dispose?.();
-  });
-  state.pins = [];
-  state.pathLines = [];
-  const routePoints = [];
-  state.filtered.forEach((memory) => {
-    const geo = memoryGeo(memory);
-    if (geo.approximate) return;
-    const marker = createMemoryMarker(memory, geo);
-    state.pins.push(marker);
-    globeGroup.add(marker);
-    routePoints.push(latLngVector(geo.lat, geo.lng, 2.08));
-  });
-  if (routePoints.length > 1) {
-    const geometry = new THREE.BufferGeometry().setFromPoints(routePoints);
-    const material = new THREE.LineBasicMaterial({ color: 0xf4b860, transparent: true, opacity: 0.38 });
-    const line = new THREE.Line(geometry, material);
-    state.pathLines.push(line);
-    globeGroup.add(line);
-  }
-}
-
-function updateHud() {
-  const memory = state.memories.find((item) => item.id === state.selectedId);
-  if (!memory) {
-    el("hudTitle").textContent = "Welt der Erinnerungen";
-    el("hudSub").textContent = "Ziehen zum Drehen, scrollen zum Zoomen, Pin anklicken zum Reisen.";
-    return;
-  }
-  el("hudTitle").textContent = memory.title;
-  el("hudSub").textContent = `${fmtDate(memory.date)} · ${memory.place || "Ort offen"}`;
-}
-
-function globeQuaternionFor(lat, lng) {
-  const vector = latLngVector(lat, lng, 1).normalize();
-  const target = new THREE.Vector3(0, 0, 1);
-  return new THREE.Quaternion().setFromUnitVectors(vector, target);
-}
-
-function goToMemory(id, options = {}) {
-  const memory = state.memories.find((item) => item.id === id);
-  if (!memory) return;
-  setView("world");
-  state.selectedId = id;
-  state.tourIndex = Math.max(0, state.filtered.findIndex((item) => item.id === id));
-  const geo = memoryGeo(memory);
-  state.targetQuaternion.copy(globeQuaternionFor(geo.lat, geo.lng));
-  state.targetDistance = geo.approximate ? APPROXIMATE_GLOBE_ZOOM : MEMORY_GLOBE_ZOOM;
-  state.autoRotate = false;
-  el("zoomRange").value = state.targetDistance;
-  renderPins();
-  updateHud();
-  if (options.openStation) setTimeout(() => showStation(memory.id), 650);
-}
-
-function showStation(id) {
-  const memory = state.memories.find((item) => item.id === id);
-  if (!memory) return;
-  const img = imageFile(memory);
-  const mapUrl = cityMapEmbed(memory);
-  el("stationPanel").innerHTML = `
-    ${img ? imageMarkup(img, "station-image", memory.title) : ""}
-    <h3>${escapeHtml(memory.title)}</h3>
-    <div class="meta">${fmtDate(memory.date)} · ${escapeHtml(memory.place || "Ort offen")}</div>
-    <p>${escapeHtml(memory.note || "Ein Moment, der hier seinen Platz bekommt.")}</p>
-    ${mapUrl ? `<div class="mini-map"><iframe src="${mapUrl}" loading="lazy" title="Stadtkarte ${escapeHtml(memory.place)}"></iframe></div>` : ""}
-    <div>${(memory.tags || []).map((tag) => `<span class="tag">${escapeHtml(tag)}</span>`).join(" ")}</div>
-    <div class="station-actions">
-      <button class="secondary" id="prevMemory" type="button">Zurueck</button>
-      <button class="primary" id="nextMemory" type="button">Weiter</button>
-      <button class="secondary" id="closeStation" type="button">Welt</button>
-      <button class="secondary admin-only" id="editMemory" type="button">Bearbeiten</button>
-      <button class="secondary danger admin-only" id="deleteMemory" type="button">Loeschen</button>
-    </div>
-  `;
-  el("stationPanel").classList.add("active");
-  document.body.classList.add("station-open");
-  el("stageCopy").style.display = "none";
-  el("prevMemory").addEventListener("click", previousMemory);
-  el("nextMemory").addEventListener("click", nextMemory);
-  el("closeStation").addEventListener("click", closeStation);
-  el("editMemory")?.addEventListener("click", () => openEditModal(memory.id));
-  el("deleteMemory").addEventListener("click", () => deleteMemory(memory.id));
-  wireImageFallbacks(el("stationPanel"));
-}
-
-function closeStation() {
-  el("stationPanel").classList.remove("active");
-  document.body.classList.remove("station-open");
-  el("stageCopy").style.display = "";
-}
-
-function nextMemory() {
-  if (!state.filtered.length) return;
-  const next = (state.tourIndex + 1) % state.filtered.length;
-  goToMemory(state.filtered[next].id, { openStation: true });
-}
-
-function previousMemory() {
-  if (!state.filtered.length) return;
-  const prev = (state.tourIndex - 1 + state.filtered.length) % state.filtered.length;
-  goToMemory(state.filtered[prev].id, { openStation: true });
-}
-
-function startTour() {
-  if (!state.filtered.length) return;
-  state.tourIndex = 0;
-  goToMemory(state.filtered[0].id, { openStation: true });
-}
-
-function playJourney(memories = state.filtered) {
-  const route = memories.filter((memory) => !memoryGeo(memory).approximate);
-  if (!route.length) return;
-  stopJourney();
-  state.journeyPlaying = true;
-  let index = 0;
-  const step = () => {
-    const memory = route[index % route.length];
-    goToMemory(memory.id, { openStation: index > 0 });
-    index += 1;
-    state.journeyTimer = window.setTimeout(step, 5200);
-  };
-  step();
-  showToast("Rundgang spielt automatisch ab.");
-}
-
-function stopJourney() {
-  window.clearTimeout(state.journeyTimer);
-  state.journeyTimer = 0;
-  state.journeyPlaying = false;
-}
-
-function startChapter(chapterId) {
-  const chapter = memoryChapters().find((item) => item.id === chapterId);
-  if (!chapter) return;
-  playJourney(chapter.memories);
-}
-
-function resetWorld() {
-  stopJourney();
-  closeStation();
-  state.selectedId = null;
-  state.tourIndex = -1;
-  state.autoRotate = true;
-  state.targetDistance = DEFAULT_GLOBE_ZOOM;
-  state.targetQuaternion.identity();
-  el("zoomRange").value = state.targetDistance;
-  renderPins();
-  updateHud();
-  setView("world");
-}
-
-async function deleteMemory(id) {
-  const memory = state.memories.find((item) => item.id === id);
-  if (!memory) return;
-  const confirmed = confirm(`Soll "${memory.title || "diese Erinnerung"}" wirklich geloescht werden?`);
-  if (!confirmed) return;
-
-  try {
-    await deleteMemoryOnServer(id);
-  } catch {
-    showToast("Die Erinnerung konnte nicht geloescht werden.", "error");
-    return;
-  }
-
-  closeStation();
-  state.selectedId = null;
-  state.tourIndex = -1;
-  state.memories = state.memories.filter((item) => item.id !== id);
-  state.filtered = state.filtered.filter((item) => item.id !== id);
-  render();
-  resetWorld();
-  await loadMemories();
-  showToast("Erinnerung geloescht.");
-}
-
-async function deleteMemoryOnServer(id) {
-  let response = await fetch(`/api/memories/${encodeURIComponent(id)}`, { method: "DELETE" });
-  if (!response.ok && response.status === 404) {
-    response = await fetch(`/api/memories?id=${encodeURIComponent(id)}`, { method: "DELETE" });
-  }
-  if (!response.ok) throw new Error(await response.text());
-  return response.json().catch(() => ({ ok: true, id }));
-}
-
-async function deleteSelectedGallery() {
-  const ids = Array.from(state.selectedGalleryIds);
-  if (!ids.length) return;
-  const confirmed = confirm(`Sollen ${ids.length} markierte Erinnerung(en) wirklich geloescht werden? Die Bilder und Vorschauen werden ebenfalls entfernt.`);
-  if (!confirmed) return;
-
-  const deleteButton = el("deleteSelectedGallery");
-  if (deleteButton) {
-    deleteButton.disabled = true;
-    deleteButton.textContent = "Lösche...";
-  }
-
-  const failed = [];
-  for (const id of ids) {
-    try {
-      await deleteMemoryOnServer(id);
-    } catch {
-      failed.push(id);
-    }
-  }
-
-  await loadMemories();
-  const stillPresent = ids.filter((id) => state.memories.some((memory) => memory.id === id));
-  const notDeleted = Array.from(new Set([...failed, ...stillPresent]));
-  state.selectedGalleryIds = new Set(notDeleted);
-  state.gallerySelectMode = notDeleted.length > 0;
-  render();
-
-  if (notDeleted.length) {
-    showToast(`${notDeleted.length} Erinnerung(en) konnten nicht geloescht werden.`, "error");
-    return;
-  }
-
-  clearGallerySelection();
-  showToast(`${ids.length} Erinnerung(en) geloescht.`);
-}
-
-function pointerToNdc(event) {
-  const rect = canvas.getBoundingClientRect();
-  state.pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-  state.pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-}
-
-function pickPin(event) {
-  pointerToNdc(event);
-  state.raycaster.setFromCamera(state.pointer, camera);
-  const hits = state.raycaster.intersectObjects(state.pins, false);
-  if (hits[0]) goToMemory(hits[0].object.userData.memoryId, { openStation: true });
-}
-
-canvas.addEventListener("pointerdown", (event) => {
-  state.isDragging = true;
-  state.downPointer = { x: event.clientX, y: event.clientY };
-  state.lastPointer = { x: event.clientX, y: event.clientY };
-  state.autoRotate = false;
-  canvas.classList.add("dragging");
-  canvas.setPointerCapture(event.pointerId);
-});
-
-canvas.addEventListener("pointermove", (event) => {
-  if (!state.isDragging || !state.lastPointer) return;
-  const dx = event.clientX - state.lastPointer.x;
-  const dy = event.clientY - state.lastPointer.y;
-  state.lastPointer = { x: event.clientX, y: event.clientY };
-  const dragScale = THREE.MathUtils.clamp((state.cameraDistance - MIN_GLOBE_ZOOM) / 3.2, 0.18, 1);
-  const yaw = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), dx * 0.006 * dragScale);
-  const pitch = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), dy * 0.0045 * dragScale);
-  state.targetQuaternion.premultiply(yaw).premultiply(pitch).normalize();
-});
-
-canvas.addEventListener("pointerup", (event) => {
-  const moved = state.downPointer ? Math.hypot(event.clientX - state.downPointer.x, event.clientY - state.downPointer.y) : 999;
-  state.isDragging = false;
-  state.downPointer = null;
-  state.lastPointer = null;
-  canvas.classList.remove("dragging");
-  if (moved < 5) pickPin(event);
-});
-
-canvas.addEventListener("wheel", (event) => {
-  event.preventDefault();
-  state.autoRotate = false;
-  const zoomFactor = Math.exp(event.deltaY * 0.0014);
-  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance * zoomFactor, MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
-  el("zoomRange").value = state.targetDistance;
-}, { passive: false });
-
-function animate() {
-  requestAnimationFrame(animate);
-  resizeRenderer();
-  const spinScale = THREE.MathUtils.clamp((state.cameraDistance - 2.45) / 3.5, 0, 1);
-  if (state.autoRotate && spinScale > 0.001) {
-    const spin = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), 0.002 * spinScale);
-    state.targetQuaternion.premultiply(spin);
-  }
-  state.globeQuaternion.slerp(state.targetQuaternion, 0.085);
-  globeGroup.quaternion.copy(state.globeQuaternion);
-  state.cameraDistance += (state.targetDistance - state.cameraDistance) * 0.12;
-  camera.position.set(0, 0, state.cameraDistance);
-  camera.lookAt(0, 0, 0);
-  stars.rotation.y += 0.0002;
-  renderer.render(scene, camera);
-}
-
-function fieldValue(form, name) {
-  return form.querySelector(`[name="${name}"]`)?.value || "";
-}
-
-function normalizeTagList(value) {
-  return String(value || "")
-    .split(",")
-    .map((tag) => tag.trim())
-    .filter(Boolean);
-}
-
-function fillMemoryForm(form, memory) {
-  form.querySelector('[name="id"]').value = memory.id || "";
-  form.querySelector('[name="title"]').value = memory.title || "";
-  form.querySelector('[name="date"]').value = memory.date || "";
-  form.querySelector('[name="type"]').value = memory.type || "photo";
-  form.querySelector('[name="place"]').value = memory.place || "";
-  form.querySelector('[name="lat"]').value = Number.isFinite(memory.lat) ? memory.lat : "";
-  form.querySelector('[name="lng"]').value = Number.isFinite(memory.lng) ? memory.lng : "";
-  form.querySelector('[name="tags"]').value = (memory.tags || []).join(", ");
-  form.querySelector('[name="note"]').value = memory.note || "";
-}
-
-function openEditModal(id) {
-  const memory = state.memories.find((item) => item.id === id);
-  if (!memory) return;
-  fillMemoryForm(el("editForm"), memory);
-  el("editModal").classList.add("active");
-}
-
-function closeEditModal() {
-  el("editModal").classList.remove("active");
-}
-
-async function updateMemoryFromForm(form) {
-  const id = fieldValue(form, "id");
-  const payload = Object.fromEntries(["title", "date", "type", "place", "lat", "lng", "tags", "note"].map((name) => [name, fieldValue(form, name)]));
-  const response = await fetch(`/api/memories/${encodeURIComponent(id)}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!response.ok) throw new Error(await response.text());
-  return response.json();
-}
-
-async function imagePreviewFile(file, index = 0) {
-  if (isHeicFile(file)) {
-    try {
-      const heic2any = await loadHeicConverter();
-      const converted = await heic2any({ blob: file, toType: "image/jpeg", quality: 0.86 });
-      const blob = Array.isArray(converted) ? converted[0] : converted;
-      if (!blob) return null;
-      return new File([blob], `preview-${index}-${file.name.replace(/\.[^.]+$/, "") || "bild"}.jpg`, { type: "image/jpeg" });
-    } catch {
-      return null;
-    }
-  }
-  if (!file.type.startsWith("image/") || file.type === "image/gif") return null;
-  const image = new Image();
-  const objectUrl = URL.createObjectURL(file);
-  try {
-    await new Promise((resolve, reject) => {
-      image.onload = resolve;
-      image.onerror = reject;
-      image.src = objectUrl;
-    });
-    const maxSide = 1800;
-    const scale = Math.min(1, maxSide / Math.max(image.naturalWidth, image.naturalHeight));
-    const width = Math.max(1, Math.round(image.naturalWidth * scale));
-    const height = Math.max(1, Math.round(image.naturalHeight * scale));
-    const previewCanvas = document.createElement("canvas");
-    previewCanvas.width = width;
-    previewCanvas.height = height;
-    previewCanvas.getContext("2d").drawImage(image, 0, 0, width, height);
-    const blob = await new Promise((resolve) => previewCanvas.toBlob(resolve, "image/jpeg", 0.88));
-    if (!blob) return null;
-    return new File([blob], `preview-${index}-${file.name.replace(/\.[^.]+$/, "") || "bild"}.jpg`, { type: "image/jpeg" });
-  } catch {
-    return null;
-  } finally {
-    URL.revokeObjectURL(objectUrl);
-  }
-}
-
-function readAscii(view, offset, length) {
-  let text = "";
-  for (let i = 0; i < length; i += 1) text += String.fromCharCode(view.getUint8(offset + i));
-  return text.replace(/\0+$/, "");
-}
-
-function parseExifDate(value) {
-  const match = String(value || "").match(/(\d{4}):(\d{2}):(\d{2})/);
-  return match ? `${match[1]}-${match[2]}-${match[3]}` : "";
-}
-
-function exifRational(view, offset, little) {
-  const numerator = view.getUint32(offset, little);
-  const denominator = view.getUint32(offset + 4, little) || 1;
-  return numerator / denominator;
-}
-
-function exifValueOffset(view, tiffStart, valueOffset, type, count, little) {
-  const byteSize = { 1: 1, 2: 1, 3: 2, 4: 4, 5: 8, 7: 1, 10: 8 }[type] || 1;
-  return count * byteSize <= 4 ? valueOffset : tiffStart + view.getUint32(valueOffset, little);
-}
-
-function readExifString(view, tiffStart, valueOffset, type, count, little) {
-  const offset = exifValueOffset(view, tiffStart, valueOffset, type, count, little);
-  return readAscii(view, offset, count);
-}
-
-function readGpsCoord(view, tiffStart, valueOffset, little) {
-  const offset = tiffStart + view.getUint32(valueOffset, little);
-  const degrees = exifRational(view, offset, little);
-  const minutes = exifRational(view, offset + 8, little);
-  const seconds = exifRational(view, offset + 16, little);
-  return degrees + minutes / 60 + seconds / 3600;
-}
-
-function parseGpsIfd(view, tiffStart, ifdOffset, little) {
-  const gps = {};
-  const entries = view.getUint16(tiffStart + ifdOffset, little);
-  for (let i = 0; i < entries; i += 1) {
-    const entry = tiffStart + ifdOffset + 2 + i * 12;
-    const tag = view.getUint16(entry, little);
-    const type = view.getUint16(entry + 2, little);
-    const count = view.getUint32(entry + 4, little);
-    const valueOffset = entry + 8;
-    if (tag === 1) gps.latRef = readExifString(view, tiffStart, valueOffset, type, count, little);
-    if (tag === 2) gps.lat = readGpsCoord(view, tiffStart, valueOffset, little);
-    if (tag === 3) gps.lngRef = readExifString(view, tiffStart, valueOffset, type, count, little);
-    if (tag === 4) gps.lng = readGpsCoord(view, tiffStart, valueOffset, little);
-  }
-  if (Number.isFinite(gps.lat) && Number.isFinite(gps.lng)) {
-    return {
-      lat: gps.latRef === "S" ? -gps.lat : gps.lat,
-      lng: gps.lngRef === "W" ? -gps.lng : gps.lng,
-    };
-  }
-  return {};
-}
-
-function parseExifSegment(view, start, length) {
-  if (readAscii(view, start, 6) !== "Exif") return {};
-  const tiffStart = start + 6;
-  const little = readAscii(view, tiffStart, 2) === "II";
-  const firstIfd = view.getUint32(tiffStart + 4, little);
-  const entries = view.getUint16(tiffStart + firstIfd, little);
-  const metadata = {};
-  let exifIfd = 0;
-  let gpsIfd = 0;
-
-  for (let i = 0; i < entries; i += 1) {
-    const entry = tiffStart + firstIfd + 2 + i * 12;
-    const tag = view.getUint16(entry, little);
-    if (tag === 0x8769) exifIfd = view.getUint32(entry + 8, little);
-    if (tag === 0x8825) gpsIfd = view.getUint32(entry + 8, little);
-  }
-
-  if (exifIfd) {
-    const exifEntries = view.getUint16(tiffStart + exifIfd, little);
-    for (let i = 0; i < exifEntries; i += 1) {
-      const entry = tiffStart + exifIfd + 2 + i * 12;
-      const tag = view.getUint16(entry, little);
-      const type = view.getUint16(entry + 2, little);
-      const count = view.getUint32(entry + 4, little);
-      if (tag === 0x9003 || tag === 0x0132) {
-        metadata.date = parseExifDate(readExifString(view, tiffStart, entry + 8, type, count, little));
-      }
-    }
-  }
-
-  if (gpsIfd) Object.assign(metadata, parseGpsIfd(view, tiffStart, gpsIfd, little));
-  return metadata;
-}
-
-async function extractImageMetadata(file) {
-  if (!/jpe?g$/i.test(file.name) && !["image/jpeg", "image/jpg"].includes(file.type)) return {};
-  const buffer = await file.arrayBuffer();
-  const view = new DataView(buffer);
-  if (view.getUint16(0) !== 0xffd8) return {};
-  let offset = 2;
-  while (offset < view.byteLength) {
-    if (view.getUint8(offset) !== 0xff) break;
-    const marker = view.getUint8(offset + 1);
-    const length = view.getUint16(offset + 2);
-    if (marker === 0xe1) return parseExifSegment(view, offset + 4, length - 2);
-    offset += 2 + length;
-  }
-  return {};
-}
-
-function setUploadStep(step) {
-  document.querySelectorAll(".wizard-step").forEach((item, index) => item.classList.toggle("active", index + 1 === step));
-  document.querySelectorAll(".wizard-page").forEach((page) => page.classList.toggle("active", Number(page.dataset.step) === step));
-  el("wizardBack").style.visibility = step === 1 ? "hidden" : "visible";
-  el("wizardNext").style.display = step === 3 ? "none" : "";
-  el("wizardSave").style.display = step === 3 ? "" : "none";
-  el("uploadModal").dataset.step = String(step);
-}
-
-function openUploadModal() {
-  el("uploadModal").classList.add("active");
-  setUploadStep(1);
-}
-
-function closeUploadModal() {
-  el("uploadModal").classList.remove("active");
-  clearUploadPreviews();
-}
-
-function uploadStep() {
-  return Number(el("uploadModal").dataset.step || "1");
-}
-
-function setPanelCollapsed(collapsed) {
-  el("panelToggle").textContent = collapsed ? "+" : "−";
-  el("panelToggle").setAttribute("aria-label", collapsed ? "Navigation ausklappen" : "Navigation einklappen");
-  el("panelToggle").title = collapsed ? "Navigation ausklappen" : "Navigation einklappen";
-  document.querySelector(".sidebar").classList.toggle("collapsed", collapsed);
-  document.body.classList.toggle("panel-collapsed", collapsed);
-  localStorage.setItem("rundgangPanelCollapsed", collapsed ? "1" : "0");
-}
-
-function clearUploadPreviews() {
-  state.uploadPreviewUrls.forEach((url) => URL.revokeObjectURL(url));
-  state.uploadPreviewUrls = [];
-  el("selectedPreviews").classList.remove("active");
-  el("selectedPreviews").innerHTML = "";
-}
-
-function renderSelectedPreviews(files) {
-  clearUploadPreviews();
-  if (!files.length) return;
-  el("selectedPreviews").classList.add("active");
-  el("selectedPreviews").innerHTML = files.map((file) => {
-    const canPreview = file.type.startsWith("image/") && !["image/heic", "image/heif"].includes(file.type) && !/\.hei[cf]$/i.test(file.name);
-    if (!canPreview) {
-      return `
-        <div class="selected-preview">
-          <div class="selected-preview-media">Datei</div>
-          <span title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
-        </div>
-      `;
-    }
-    const url = URL.createObjectURL(file);
-    state.uploadPreviewUrls.push(url);
-    return `
-      <div class="selected-preview">
-        <div class="selected-preview-media"><img src="${url}" alt="${escapeHtml(file.name)}"></div>
-        <span title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
-      </div>
-    `;
-  }).join("");
-}
-
-async function analyzeSelectedFiles() {
-  const files = Array.from(el("fileInput").files || []);
-  el("fileLabel").textContent = files.length ? `${files.length} Datei(en) ausgewaehlt` : "Dateien hier ablegen oder auswaehlen";
-  renderSelectedPreviews(files);
-  el("geoStatus").classList.remove("active");
-  el("geoStatus").textContent = "";
-  if (!files.length) return;
-
-  const metadata = await extractImageMetadata(files[0]);
-  const messages = [];
-  const form = el("memoryForm");
-  if (metadata.date && !fieldValue(form, "date")) {
-    form.querySelector('[name="date"]').value = metadata.date;
-    messages.push(`Datum erkannt: ${metadata.date}`);
-  }
-  if (Number.isFinite(metadata.lat) && Number.isFinite(metadata.lng)) {
-    form.querySelector('[name="lat"]').value = metadata.lat.toFixed(6);
-    form.querySelector('[name="lng"]').value = metadata.lng.toFixed(6);
-    messages.push(`GPS erkannt: ${metadata.lat.toFixed(5)}, ${metadata.lng.toFixed(5)}`);
-  }
-  if (!fieldValue(form, "title")) form.querySelector('[name="title"]').value = files[0].name.replace(/\.[^.]+$/, "");
-  suggestUploadDetails(form, files, metadata);
-  if (messages.length) {
-    el("geoStatus").textContent = messages.join(" · ");
-    el("geoStatus").classList.add("active");
-  } else {
-    el("geoStatus").textContent = "Keine GPS-Daten im Bild gefunden. Du kannst im nächsten Schritt einen Ort eintragen.";
-    el("geoStatus").classList.add("active");
-  }
-  setUploadStep(2);
-}
-
-function suggestUploadDetails(form, files, metadata) {
-  const filename = files[0]?.name?.replace(/\.[^.]+$/, "") || "";
-  const place = fieldValue(form, "place");
-  const date = fieldValue(form, "date") || metadata.date || "";
-  const tags = new Set(normalizeTagList(fieldValue(form, "tags")));
-  if (place) tags.add(place.toLowerCase().split(/[,\s]+/)[0]);
-  if (date) tags.add(date.slice(0, 4));
-  if (files.some((file) => isHeicFile(file) || file.type?.startsWith("image/"))) tags.add("foto");
-  if (/geburtstag|birthday/i.test(filename)) tags.add("geburtstag");
-  if (/trip|reise|urlaub|gent|muenster|münster/i.test(`${filename} ${place}`)) tags.add("reise");
-  form.querySelector('[name="tags"]').value = Array.from(tags).filter(Boolean).join(", ");
-  if (!fieldValue(form, "note")) {
-    const hint = [place ? `Moment in ${place}` : "", date ? `am ${fmtDate(date)}` : ""].filter(Boolean).join(" ");
-    form.querySelector('[name="note"]').placeholder = hint || "Was soll hier nicht verloren gehen?";
-  }
-}
-
-async function uploadFormData(form) {
-  const data = new FormData();
-  ["title", "date", "type", "place", "lat", "lng", "tags", "note"].forEach((name) => data.append(name, fieldValue(form, name)));
-  const files = Array.from(el("fileInput").files || []);
-  for (const [index, file] of files.entries()) {
-    const preview = await imagePreviewFile(file, index);
-    data.append("files", file);
-    if (preview) data.append("previews", preview);
-  }
-  return data;
-}
-
-document.querySelectorAll(".tabs button").forEach((button) => {
-  button.addEventListener("click", () => setView(button.dataset.view));
-});
-
-el("startTour").addEventListener("click", startTour);
-el("playJourney").addEventListener("click", () => playJourney());
-el("resetWorld").addEventListener("click", resetWorld);
-el("giftModeToggle").addEventListener("click", () => {
-  const enabled = !document.body.classList.contains("gift-mode");
-  setGiftMode(enabled);
-});
-el("openUploadFab").addEventListener("click", openUploadModal);
-el("closeUpload").addEventListener("click", closeUploadModal);
-el("closeEdit").addEventListener("click", closeEditModal);
-el("cancelEdit").addEventListener("click", closeEditModal);
-el("panelToggle").addEventListener("click", () => {
-  setPanelCollapsed(!document.querySelector(".sidebar").classList.contains("collapsed"));
-});
-setPanelCollapsed(localStorage.getItem("rundgangPanelCollapsed") === "1");
-el("introStart").addEventListener("click", () => {
-  el("intro").classList.add("hidden");
-  sessionStorage.setItem("rundgangIntroSeen", "1");
-});
-if (sessionStorage.getItem("rundgangIntroSeen") === "1") {
-  el("intro").classList.add("hidden");
-}
-function setGiftMode(enabled) {
-  document.body.classList.toggle("gift-mode", enabled);
-  el("giftModeToggle").textContent = enabled ? "Adminmodus" : "Geschenkmodus";
-  if (enabled) {
-    closeEditModal();
-    closeUploadModal();
-    clearGallerySelection();
-  }
-  sessionStorage.setItem("rundgangGiftMode", enabled ? "1" : "0");
-}
-localStorage.removeItem("rundgangGiftMode");
-const giftParam = new URLSearchParams(location.search).get("gift");
-if (giftParam === "1" || (giftParam !== "0" && sessionStorage.getItem("rundgangGiftMode") === "1")) {
-  setGiftMode(true);
-} else {
-  setGiftMode(false);
-}
-el("wizardBack").addEventListener("click", () => setUploadStep(Math.max(1, uploadStep() - 1)));
-el("wizardNext").addEventListener("click", () => setUploadStep(Math.min(3, uploadStep() + 1)));
-el("wizardSave").style.display = "none";
-el("wizardBack").style.visibility = "hidden";
-el("searchInput").addEventListener("input", loadMemories);
-el("typeFilter").addEventListener("change", loadMemories);
-el("aiForm").addEventListener("submit", (event) => {
-  event.preventDefault();
-  const question = el("aiQuestion").value.trim();
-  if (question) askAi(question);
-});
-el("zoomRange").addEventListener("input", (event) => {
-  state.autoRotate = false;
-  state.targetDistance = THREE.MathUtils.clamp(Number(event.target.value), MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
-});
-el("zoomIn").addEventListener("click", () => {
-  state.autoRotate = false;
-  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance * 0.86, MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
-  el("zoomRange").value = state.targetDistance;
-});
-el("zoomOut").addEventListener("click", () => {
-  state.autoRotate = false;
-  state.targetDistance = THREE.MathUtils.clamp(state.targetDistance * 1.16, MIN_GLOBE_ZOOM, MAX_GLOBE_ZOOM);
-  el("zoomRange").value = state.targetDistance;
-});
-
-el("fileInput").addEventListener("change", () => {
-  analyzeSelectedFiles();
-});
-el("dropzone").addEventListener("dragover", (event) => event.preventDefault());
-el("dropzone").addEventListener("drop", (event) => {
-  event.preventDefault();
-  el("fileInput").files = event.dataTransfer.files;
-  analyzeSelectedFiles();
-});
-el("memoryForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const saveButton = el("wizardSave");
-  saveButton.disabled = true;
-  saveButton.textContent = "Speichert...";
-  try {
-    const data = await uploadFormData(event.currentTarget);
-    const response = await fetch("/api/memories", { method: "POST", body: data });
-    if (!response.ok) throw new Error(await responseErrorMessage(response));
-    const memory = await response.json().catch(() => null);
-    event.currentTarget.reset();
-    el("fileLabel").textContent = "Dateien hier ablegen oder auswaehlen";
-    clearUploadPreviews();
-    closeUploadModal();
-    await loadMemories();
-    if (memory?.id) goToMemory(memory.id, { openStation: true });
-    showToast("Erinnerung gespeichert.");
-  } catch (error) {
-    showToast(`Speichern fehlgeschlagen: ${error.message}`, "error");
-  } finally {
-    saveButton.disabled = false;
-    saveButton.textContent = "Erinnerung speichern";
-  }
-});
-
-el("editForm").addEventListener("submit", async (event) => {
-  event.preventDefault();
-  const saveButton = el("saveEdit");
-  saveButton.disabled = true;
-  saveButton.textContent = "Speichert...";
-  try {
-    const memory = await updateMemoryFromForm(event.currentTarget);
-    closeEditModal();
-    await loadMemories();
-    if (memory?.id) goToMemory(memory.id, { openStation: true });
-    showToast("Erinnerung aktualisiert.");
-  } catch {
-    showToast("Die Erinnerung konnte nicht aktualisiert werden.", "error");
-  } finally {
-    saveButton.disabled = false;
-    saveButton.textContent = "Speichern";
-  }
-});
-
-setView("world");
-connectEvents();
-loadMemories();
-animate();
-</script>
+  <div class="award-stamp" hidden role="status"></div>
 </body>
 </html>
