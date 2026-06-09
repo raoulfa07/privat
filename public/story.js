@@ -40,6 +40,16 @@ const galleryPreview = galleryForm.querySelector(".gallery-preview");
 const gallerySubmit = galleryForm.querySelector('button[type="submit"]');
 const galleryFormStatus = galleryForm.querySelector(".gallery-form-status");
 const gallerySort = galleryDialog.querySelector(".gallery-sort");
+const gallerySortLabel = gallerySort.closest("label");
+const galleryViewButtons = [...galleryDialog.querySelectorAll("[data-gallery-view]")];
+const galleryMapWrap = galleryDialog.querySelector(".gallery-map-wrap");
+const galleryMapElement = galleryDialog.querySelector(".gallery-map");
+const galleryMapNote = galleryDialog.querySelector(".gallery-map-note");
+const dailyMemory = document.querySelector(".daily-memory");
+const dailyMemoryImage = dailyMemory.querySelector("img");
+const dailyMemoryTitle = dailyMemory.querySelector(".daily-memory-title");
+const dailyMemoryMeta = dailyMemory.querySelector(".daily-memory-meta");
+const photoDialog = document.querySelector(".photo-dialog");
 
 let current = 0;
 let shownMessages = 1;
@@ -50,6 +60,12 @@ let galleryItems = [];
 let homeEvents = null;
 let homeRetryTimer = null;
 let stampTimer;
+let galleryView = "wall";
+let galleryMap = null;
+let galleryMapMarkers = null;
+let galleryMapSignature = "";
+let leafletPromise = null;
+let dailyMemoryPickCurrent = null;
 const roomData = {
   kitchen: {
     kicker: "Der Raum, in dem fast alles beginnt",
@@ -287,6 +303,7 @@ function setHomeState(home) {
   renderGroceryItems();
   renderHouseholdItems();
   renderGalleryItems();
+  renderDailyMemory();
 }
 
 async function loadHome() {
@@ -330,6 +347,9 @@ async function openTool(tool) {
   }[tool];
   if (!dialog) return;
   dialog.showModal();
+  if (tool === "gallery" && galleryView === "map") {
+    renderGalleryMap().catch((error) => showStamp("Karte gerade nicht verfügbar", error.message));
+  }
 }
 
 async function migrateLocalItems() {
@@ -503,6 +523,9 @@ function toDateTimeLocal(value) {
 }
 
 function renderGalleryItems() {
+  if (galleryView === "map" && galleryDialog.open) {
+    renderGalleryMap().catch(() => {});
+  }
   galleryList.replaceChildren();
   galleryCount.textContent = galleryItems.length;
 
@@ -598,6 +621,208 @@ function renderGalleryItems() {
     galleryList.append(card);
   });
 }
+
+function loadLeaflet() {
+  if (window.L) return Promise.resolve();
+  if (!leafletPromise) {
+    leafletPromise = new Promise((resolve, reject) => {
+      const styles = document.createElement("link");
+      styles.rel = "stylesheet";
+      styles.href = "./vendor/leaflet/leaflet.css?v=1.9.4";
+      document.head.append(styles);
+      const script = document.createElement("script");
+      script.src = "./vendor/leaflet/leaflet.js?v=1.9.4";
+      script.addEventListener("load", () => resolve());
+      script.addEventListener("error", () => {
+        leafletPromise = null;
+        reject(new Error("Die Karte lässt sich gerade nicht laden."));
+      });
+      document.head.append(script);
+    });
+  }
+  return leafletPromise;
+}
+
+function formatMemoryDate(value) {
+  const date = new Date(value || "");
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function galleryMapGroups() {
+  const groups = new Map();
+  galleryItems.forEach((item) => {
+    const latitude = Number(item.latitude);
+    const longitude = Number(item.longitude);
+    if (item.latitude === null || item.latitude === undefined || item.latitude === "") return;
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return;
+    if (!latitude && !longitude) return;
+    const key = `${latitude.toFixed(3)},${longitude.toFixed(3)}`;
+    if (!groups.has(key)) groups.set(key, { latitude, longitude, items: [] });
+    groups.get(key).items.push(item);
+  });
+  return [...groups.values()];
+}
+
+function buildMapPopup(group) {
+  const wrap = document.createElement("div");
+  wrap.className = "map-popup";
+  const items = [...group.items].sort((a, b) => galleryTimestamp(b, "takenAt") - galleryTimestamp(a, "takenAt"));
+  const place = document.createElement("strong");
+  place.textContent = items.find((item) => item.location)?.location || "Ein gemeinsamer Ort";
+  wrap.append(place);
+  items.forEach((item) => {
+    const figure = document.createElement("figure");
+    const image = document.createElement("img");
+    image.src = item.photo;
+    image.alt = item.caption || "Erinnerungsfoto";
+    image.loading = "lazy";
+    const caption = document.createElement("figcaption");
+    caption.textContent = [item.caption, formatMemoryDate(item.takenAt)].filter(Boolean).join(" · ");
+    figure.append(image, caption);
+    wrap.append(figure);
+  });
+  return wrap;
+}
+
+async function renderGalleryMap() {
+  const groups = galleryMapGroups();
+  const located = groups.reduce((sum, group) => sum + group.items.length, 0);
+  const missing = galleryItems.length - located;
+  if (!galleryItems.length) {
+    galleryMapNote.textContent = "Noch hängt nichts an der Wand – und damit auch nichts auf der Karte.";
+  } else if (!located) {
+    galleryMapNote.textContent = "Noch verrät kein Foto seinen Ort. Original-Fotos statt Messenger-Versionen bringen die Pins gleich mit.";
+  } else if (missing > 0) {
+    galleryMapNote.textContent = `${located} von ${galleryItems.length} Fotos kennen ihren Ort – der Rest hängt nur an der Wand.`;
+  } else {
+    galleryMapNote.textContent = "Jeder Pin ein Ort, an dem wir es schön hatten.";
+  }
+
+  await loadLeaflet();
+  if (!galleryMap) {
+    galleryMap = L.map(galleryMapElement, { scrollWheelZoom: false, worldCopyJump: true });
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    }).addTo(galleryMap);
+    galleryMapMarkers = L.layerGroup().addTo(galleryMap);
+  }
+
+  galleryMapMarkers.clearLayers();
+  const bounds = [];
+  groups.forEach((group) => {
+    const items = [...group.items].sort((a, b) => galleryTimestamp(b, "takenAt") - galleryTimestamp(a, "takenAt"));
+    const photoUrl = String(items[0].photo || "").replaceAll("'", "%27").replaceAll('"', "%22");
+    const badge = items.length > 1 ? `<b>${items.length}</b>` : "";
+    const icon = L.divIcon({
+      className: "photo-pin-anchor",
+      html: `<span class="photo-pin" style="background-image:url('${photoUrl}')">${badge}</span>`,
+      iconSize: [52, 61],
+      iconAnchor: [26, 61],
+      popupAnchor: [0, -58],
+    });
+    L.marker([group.latitude, group.longitude], { icon })
+      .bindPopup(buildMapPopup(group), { maxWidth: 230, className: "photo-popup" })
+      .addTo(galleryMapMarkers);
+    bounds.push([group.latitude, group.longitude]);
+  });
+
+  const signature = bounds.map(([lat, lng]) => `${lat.toFixed(3)},${lng.toFixed(3)}`).sort().join("|");
+  const boundsChanged = signature !== galleryMapSignature;
+  galleryMapSignature = signature;
+  requestAnimationFrame(() => {
+    galleryMap.invalidateSize();
+    if (!boundsChanged) return;
+    if (bounds.length) galleryMap.fitBounds(bounds, { padding: [38, 38], maxZoom: 12 });
+    else galleryMap.setView([51.2277, 6.7735], 5);
+  });
+}
+
+function setGalleryView(view) {
+  galleryView = view;
+  galleryViewButtons.forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.galleryView === view);
+  });
+  galleryMapWrap.hidden = view !== "map";
+  galleryList.hidden = view === "map";
+  gallerySortLabel.hidden = view === "map";
+  if (view === "map") {
+    renderGalleryMap().catch((error) => showStamp("Karte gerade nicht verfügbar", error.message));
+  }
+}
+
+function openPhoto(item, label) {
+  photoDialog.querySelector(".photo-dialog-label").textContent = label || "Erinnerung";
+  const image = photoDialog.querySelector(".photo-dialog-image");
+  image.src = item.photo;
+  image.alt = item.caption || "Erinnerungsfoto";
+  photoDialog.querySelector(".photo-dialog-caption").textContent = item.caption || "";
+  photoDialog.querySelector(".photo-dialog-meta").textContent = [
+    formatMemoryDate(item.takenAt),
+    item.location ? `📍 ${item.location}` : "",
+  ].filter(Boolean).join(" · ");
+  photoDialog.showModal();
+}
+
+function dailyMemoryPick() {
+  const today = new Date();
+  const dated = galleryItems.filter((item) => galleryTimestamp(item, "takenAt"));
+  if (!dated.length) return null;
+
+  const anniversaries = dated.map((item) => {
+    const taken = new Date(item.takenAt);
+    if (taken.getDate() !== today.getDate()) return null;
+    const months = (today.getFullYear() - taken.getFullYear()) * 12 + today.getMonth() - taken.getMonth();
+    if (months < 1) return null;
+    const label = months % 12 === 0
+      ? `Heute vor ${months === 12 ? "einem Jahr" : `${months / 12} Jahren`}`
+      : `Heute vor ${months === 1 ? "einem Monat" : `${months} Monaten`}`;
+    return { item, label };
+  }).filter(Boolean);
+  if (anniversaries.length) {
+    anniversaries.sort((a, b) => galleryTimestamp(a.item, "takenAt") - galleryTimestamp(b.item, "takenAt"));
+    return anniversaries[0];
+  }
+
+  const throwbacks = dated
+    .filter((item) => Date.now() - galleryTimestamp(item, "takenAt") >= 14 * 86400000)
+    .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  if (!throwbacks.length) return null;
+
+  let seed = 0;
+  for (const char of `rippchen-${today.toISOString().slice(0, 10)}`) {
+    seed = (seed * 31 + char.charCodeAt(0)) % 2147483647;
+  }
+  const item = throwbacks[seed % throwbacks.length];
+  const days = Math.round((Date.now() - galleryTimestamp(item, "takenAt")) / 86400000);
+  return { item, label: `Schon ${days} Tage her` };
+}
+
+function renderDailyMemory() {
+  dailyMemoryPickCurrent = dailyMemoryPick();
+  dailyMemory.hidden = !dailyMemoryPickCurrent;
+  if (!dailyMemoryPickCurrent) return;
+  const { item, label } = dailyMemoryPickCurrent;
+  dailyMemoryImage.src = item.photo;
+  dailyMemoryImage.alt = item.caption || "Erinnerungsfoto";
+  dailyMemoryTitle.textContent = item.caption || "Weißt du noch?";
+  dailyMemoryMeta.textContent = [label, item.location ? `📍 ${item.location}` : ""].filter(Boolean).join(" · ");
+}
+
+galleryViewButtons.forEach((button) => {
+  button.addEventListener("click", () => setGalleryView(button.dataset.galleryView));
+});
+
+dailyMemory.addEventListener("click", () => {
+  if (!dailyMemoryPickCurrent) return;
+  openPhoto(dailyMemoryPickCurrent.item, dailyMemoryPickCurrent.label);
+});
+
+photoDialog.querySelector(".photo-close").addEventListener("click", () => photoDialog.close());
+photoDialog.addEventListener("click", (event) => {
+  if (event.target === photoDialog) photoDialog.close();
+});
 
 document.querySelectorAll("[data-open-tool]").forEach((button) => {
   button.addEventListener("click", () => openTool(button.dataset.openTool));
