@@ -1,4 +1,4 @@
-const chapters = ["intro", "chat", "date", "moments", "ending", "coffee", "message", "home"];
+const chapters = ["intro", "chat", "date", "moments", "ending", "coffee", "home"];
 const header = document.querySelector(".story-header");
 const progressLabel = document.querySelector(".progress-label");
 const progressSegments = [...document.querySelectorAll(".progress-track i")];
@@ -165,7 +165,7 @@ function showChapter(target) {
   });
 
   header.hidden = current === 0;
-  progressLabel.textContent = `Kapitel ${Math.min(current, 6)} von 6`;
+  progressLabel.textContent = `Kapitel ${Math.min(current, 5)} von 5`;
   progressSegments.forEach((segment, index) => {
     segment.classList.toggle("is-done", index < current - 1);
     segment.classList.toggle("is-active", index === current - 1);
