@@ -1,6 +1,7 @@
+import { LAUNCHED } from "./config";
 import Teaser from "./components/Teaser";
+import Flow from "./components/Flow";
 
-// Der Bestell-Flow (hinter LAUNCHED aus config.ts) kommt in Schritt 3.
 export default function App() {
-  return <Teaser />;
+  return LAUNCHED ? <Flow /> : <Teaser />;
 }

@@ -73,6 +73,7 @@ body {
   -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--zig)) 100%;
           mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / calc(2 * var(--zig)) 100%;
 }
+.receipt.fast { animation: print 1.2s steps(16) both; }
 @keyframes print { from { transform: translateY(-100%); } to { transform: translateY(0); } }
 
 .head { text-align: center; }
@@ -111,6 +112,50 @@ li { display: flex; justify-content: space-between; gap: 1rem; padding: .15rem 0
 .foot { text-align: center; color: var(--faded); margin-top: 1.2rem; font-size: .9rem; }
 
 @media (prefers-reduced-motion: reduce) {
-  .receipt, .bar i.stall { animation: none; }
+  .receipt, .receipt.fast, .bar i.stall { animation: none; }
   .bar i { transition: none; }
+}
+
+/* ---- Bestell-Flow ---- */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+.printed { animation: print-in .6s steps(6) both; }
+@keyframes print-in { from { clip-path: inset(0 0 100% 0); } to { clip-path: inset(0); } }
+
+.q:focus, .shop:focus { outline: none; }
+.options { display: grid; gap: .6rem; margin-top: 1rem; }
+.opt {
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  min-height: 3.2rem;
+  padding: .7rem .8rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+}
+.opt .box { flex: none; width: .95em; height: .95em; border: 2px solid var(--ink); }
+.opt:hover, .opt:active { background: var(--sauce); }
+.opt:hover .box, .opt:active .box { background: var(--ink); }
+.opt:focus-visible { outline: 3px solid var(--sauce); outline-offset: 3px; }
+
+.btn-ghost { background: var(--paper); color: var(--ink); border: 2px dashed var(--ink); margin-top: .8rem; }
+.btn:disabled { opacity: .6; cursor: progress; }
+.geo { min-height: 1.4em; margin: .5rem 0 0; color: var(--faded); font-size: .9rem; }
+
+.shop { font-size: 1.5rem; font-weight: 700; line-height: 1.2; margin: .9rem 0 .5rem; }
+.label { font-weight: 700; margin: 0 0 .3rem; letter-spacing: .08em; text-transform: uppercase; }
+li.sub { padding-left: 3ch; color: var(--faded); }
+li > span:last-child { text-align: right; }
+.reason { margin: 0; line-height: 1.5; }
+.fallback { margin: 0 0 1rem; font-weight: 700; text-align: center; }
+.links a { color: var(--ink); font-weight: 700; text-underline-offset: 3px; }
+.links a:focus-visible { outline: 3px solid var(--sauce); outline-offset: 2px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .printed { animation: none; }
 }
