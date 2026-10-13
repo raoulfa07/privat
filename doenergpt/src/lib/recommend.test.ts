@@ -1,26 +1,19 @@
 import { describe, expect, it } from "vitest";
-import { recommend } from "./recommend";
-import type { Answers, Shop } from "./types";
+import { baseRating, recommend, recommendDuo } from "./recommend";
+import { answers, shop } from "./fixtures";
 
-const shop = (id: string, over: Partial<Shop> = {}): Shop => ({
-  id, name: id, district: "x", address: "x", lat: 51.96, lng: 7.62,
-  radarRating: null, reviewUrl: null, veggie: null, chicken: null, calf: null,
-  bigPortions: null, spicy: null, seating: null, ...over,
-});
-
-const base: Answers = { hunger: "normal", meat: "any", sauce: "garlic", distance: "city", mood: "quick" };
-const ids = (r: ReturnType<typeof recommend>) => r.ranked.map((x) => x.shop.id);
+const base = answers();
+const ids = (r: { ranked: { shop: { id: string } }[] }) => r.ranked.map((x) => x.shop.id);
+const noDice = () => { throw new Error("darf ohne Überraschung nicht würfeln"); };
 
 describe("recommend", () => {
   it("gibt bei gleichen Antworten den gleichen Vorschlag", () => {
     const shops = [shop("b"), shop("a", { radarRating: 4 }), shop("c", { seating: true })];
-    const random = () => { throw new Error("darf ohne Überraschung nicht würfeln"); };
-    expect(ids(recommend(base, shops, { random }))).toEqual(ids(recommend(base, [...shops].reverse(), { random })));
+    expect(ids(recommend(base, shops, { random: noDice }))).toEqual(ids(recommend(base, [...shops].reverse(), { random: noDice })));
   });
 
   it("nimmt die Bewertung als Basis", () => {
-    const r = recommend(base, [shop("a", { radarRating: 3 }), shop("b", { radarRating: 4.5 })]);
-    expect(r.ranked[0].shop.id).toBe("b");
+    expect(recommend(base, [shop("a", { radarRating: 3 }), shop("b", { radarRating: 4.5 })]).ranked[0].shop.id).toBe("b");
   });
 
   it("sortiert Gleichstand stabil nach id", () => {
@@ -45,8 +38,7 @@ describe("recommend", () => {
   });
 
   it("bevorzugt Sitzplätze bei „Hinsetzen“", () => {
-    const r = recommend({ ...base, mood: "sit" }, [shop("a", { seating: false }), shop("b", { seating: true })]);
-    expect(ids(r)).toEqual(["b", "a"]);
+    expect(ids(recommend({ ...base, mood: "sit" }, [shop("a", { seating: false }), shop("b", { seating: true })]))).toEqual(["b", "a"]);
   });
 
   it("ignoriert Entfernung ohne Standort", () => {
@@ -61,6 +53,34 @@ describe("recommend", () => {
     expect(r.ranked[0].shop.id).toBe("nah");
     expect(r.ranked[0].reasons[0].key).toBe("near");
     expect(r.ranked[0].distanceKm).toBeCloseTo(0.22, 1);
+  });
+
+  it("schließt falsche Küche und geschlossene Läden aus", () => {
+    const r = recommend({ ...base, cuisine: "asian" }, [
+      shop("doener", { radarRating: 5 }),
+      shop("zu", { cuisine: "asian", openNow: false }),
+      shop("thai", { cuisine: "asian" }),
+    ]);
+    expect(ids(r)[0]).toBe("thai");
+    expect(r.ranked.filter((x) => x.conflict).map((x) => x.shop.id).sort()).toEqual(["doener", "zu"]);
+  });
+
+  it("nimmt bei „Egal“ jede Küche", () => {
+    const r = recommend({ ...base, cuisine: "any" }, [shop("a", { cuisine: "burger" }), shop("b", { cuisine: "other" })]);
+    expect(r.ranked.every((x) => !x.conflict)).toBe(true);
+  });
+
+  it("zieht Google-Sterne mit wenigen Bewertungen Richtung Mitte", () => {
+    const viele = shop("viele", { googleRating: 4.6, ratingCount: 2000 });
+    const wenige = shop("wenige", { googleRating: 5, ratingCount: 3 });
+    expect(baseRating(viele)).toBeGreaterThan(baseRating(wenige));
+    expect(recommend(base, [wenige, viele]).ranked[0].shop.id).toBe("viele");
+  });
+
+  it("gibt eigenen Radar-Läden Vorrang vor gleich guten Google-Läden", () => {
+    const r = recommend(base, [shop("google", { googleRating: 4.5, ratingCount: 5000 }), shop("radar", { radarRating: 4.5 })]);
+    expect(r.ranked[0].shop.id).toBe("radar");
+    expect(r.ranked[0].reasons[0].key).toBe("radar");
   });
 
   it("aktiviert den Fallback, wenn nichts passt, und nimmt dann den bestbewerteten", () => {
@@ -83,5 +103,42 @@ describe("recommend", () => {
   it("gibt jeden Laden genau einmal zurück", () => {
     const shops = [shop("a", { veggie: false }), shop("b"), shop("c")];
     expect(ids(recommend({ ...base, meat: "veggie" }, shops)).sort()).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("recommendDuo", () => {
+  it("findet den Laden, mit dem beide leben können", () => {
+    const a = answers({ meat: "veggie" });
+    const b = answers({ hunger: "xxl" });
+    const r = recommendDuo(a, b, [
+      shop("nur-xxl", { bigPortions: true, veggie: false }),
+      shop("nur-veggie", { veggie: "Falafel", bigPortions: false }),
+      shop("beides", { veggie: "Halloumi", bigPortions: true }),
+    ], { random: noDice });
+    expect(r.ranked[0].shop.id).toBe("beides");
+    expect(r.ranked.find((x) => x.shop.id === "nur-xxl")!.conflict).toBe(true);
+  });
+
+  it("lässt bei unterschiedlicher Küche beide Küchen zu, aber keine dritte", () => {
+    const r = recommendDuo(answers({ cuisine: "doener" }), answers({ cuisine: "asian" }), [
+      shop("burger", { cuisine: "burger", radarRating: 5 }),
+      shop("thai", { cuisine: "asian" }),
+      shop("doener"),
+    ]);
+    expect(r.ranked.find((x) => x.shop.id === "burger")!.conflict).toBe(true);
+    expect(r.ranked.filter((x) => !x.conflict)).toHaveLength(2);
+  });
+
+  it("ist symmetrisch", () => {
+    const a = answers({ meat: "veggie" });
+    const b = answers({ mood: "sit" });
+    const shops = [shop("a", { veggie: "Falafel" }), shop("b", { seating: true }), shop("c", { veggie: "x", seating: true })];
+    expect(ids(recommendDuo(a, b, shops))).toEqual(ids(recommendDuo(b, a, shops)));
+  });
+
+  it("hält beide Einzelwertungen fest", () => {
+    const r = recommendDuo(answers({ meat: "veggie" }), answers(), [shop("x", { veggie: "Falafel" })]);
+    expect(r.ranked[0].a.reasons[0].key).toBe("veggie");
+    expect(r.ranked[0].b.reasons.some((x) => x.key === "veggie")).toBe(false);
   });
 });

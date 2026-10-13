@@ -1,12 +1,18 @@
 import type { Answers } from "../lib/types";
 
+type Option<K extends keyof Answers> = { value: NonNullable<Answers[K]>; label: string };
+
 type Question<K extends keyof Answers> = {
   key: K;
   text: string;
-  options: { value: Answers[K]; label: string }[];
+  options: Option<K>[];
+  /** Frage nur stellen, wenn das hier stimmt. */
+  when?: (a: Partial<Answers>) => boolean;
 };
 
-export const QUESTIONS = [
+export type AnyQuestion = { [K in keyof Answers]: Question<K> }[keyof Answers];
+
+export const QUESTIONS: AnyQuestion[] = [
   {
     key: "hunger",
     text: "Wie hungrig bist du, auf einer Skala von Beilagensalat bis Dürüm XXL?",
@@ -16,7 +22,18 @@ export const QUESTIONS = [
       { value: "extra", label: "Döner mit extra Fleisch" },
       { value: "xxl", label: "Dürüm XXL" },
     ],
-  } satisfies Question<"hunger">,
+  },
+  {
+    key: "cuisine",
+    text: "Muss es Döner sein?",
+    options: [
+      { value: "doener", label: "Ja. Was sonst." },
+      { value: "asian", label: "Asiatisch" },
+      { value: "burger", label: "Burger" },
+      { value: "indian", label: "Indisch" },
+      { value: "any", label: "Egal, Hauptsache lecker" },
+    ],
+  },
   {
     key: "meat",
     text: "Fleisch oder Gemüse?",
@@ -26,26 +43,27 @@ export const QUESTIONS = [
       { value: "veggie", label: "Veggie/Halloumi" },
       { value: "any", label: "Egal, Hauptsache warm" },
     ],
-  } satisfies Question<"meat">,
+  },
   {
     key: "sauce",
     text: "Soße?",
+    when: (a) => a.cuisine === "doener",
     options: [
       { value: "garlic", label: "Knoblauch" },
       { value: "herb", label: "Kräuter" },
       { value: "hot", label: "Scharf" },
       { value: "all", label: "Alles. Mit alles." },
     ],
-  } satisfies Question<"sauce">,
+  },
   {
     key: "distance",
     text: "Wie weit willst du dafür gehen?",
     options: [
       { value: "near", label: "Nur um die Ecke" },
-      { value: "city", label: "Quer durch Münster" },
-      { value: "greven", label: "Für den besten Döner auch nach Greven" },
+      { value: "city", label: "Quer durch die Stadt" },
+      { value: "greven", label: "Für das beste Essen auch nach Greven" },
     ],
-  } satisfies Question<"distance">,
+  },
   {
     key: "mood",
     text: "Wie ist die Stimmung?",
@@ -54,5 +72,15 @@ export const QUESTIONS = [
       { value: "sit", label: "Hinsetzen und genießen" },
       { value: "surprise", label: "Ich will überrascht werden" },
     ],
-  } satisfies Question<"mood">,
-] as const;
+  },
+];
+
+/** Die Fragen, die bei diesen Antworten gestellt werden. */
+export function activeQuestions(a: Partial<Answers>): AnyQuestion[] {
+  return QUESTIONS.filter((q) => !q.when || q.when(a));
+}
+
+/** Fehlende optionale Antworten auffüllen, sobald alle aktiven Fragen beantwortet sind. */
+export function complete(a: Partial<Answers>): Answers {
+  return { sauce: null, ...a } as Answers;
+}

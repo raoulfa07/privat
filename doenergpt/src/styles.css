@@ -156,6 +156,54 @@ li > span:last-child { text-align: right; }
 .links a { color: var(--ink); font-weight: 700; text-underline-offset: 3px; }
 .links a:focus-visible { outline: 3px solid var(--sauce); outline-offset: 2px; }
 
+.intro { margin: 0 0 1rem; line-height: 1.5; }
+.reason.small { margin-top: .5rem; color: var(--faded); font-size: .95rem; }
+.btn-small { width: auto; margin: 0; padding: .55rem .8rem; flex: none; }
+
+.inline-form { margin-top: 1rem; display: grid; grid-template-columns: minmax(0, 1fr); gap: .3rem; }
+.inline-form label { font-weight: 700; font-size: .9rem; }
+.inline-form div { display: flex; gap: .5rem; }
+.inline-form input {
+  font: inherit;
+  flex: 1;
+  min-width: 0;
+  padding: .5rem .6rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--ink);
+  border-radius: 0;
+}
+.inline-form input:focus-visible { outline: 3px solid var(--sauce); outline-offset: 2px; }
+
+.link-text { font-size: .75rem; color: var(--faded); overflow-wrap: anywhere; margin: .4rem 0 0; }
+
+.veto-row { display: grid; grid-template-columns: 1fr 1fr; gap: .6rem; margin-top: 1.2rem; }
+.btn-veto { margin: 0; display: grid; gap: .2rem; padding: .6rem .4rem; }
+.btn-veto:disabled { opacity: .45; cursor: not-allowed; }
+.veto-cards { letter-spacing: .2em; color: var(--sauce); font-size: .85rem; }
+
+/* Döner-Spieß: Fleischstreifen wandern seitlich, sieht aus wie Drehen. */
+.spin { display: grid; justify-items: center; gap: 1rem; padding: 1rem 0 .5rem; }
+.spit {
+  width: 84px;
+  height: 130px;
+  clip-path: polygon(8% 0, 92% 0, 72% 100%, 28% 100%);
+  background:
+    linear-gradient(90deg, rgba(0,0,0,.35), transparent 30% 70%, rgba(0,0,0,.35)),
+    repeating-linear-gradient(100deg, #8a4b22 0 9px, #b8692f 9px 15px, #6f3a19 15px 20px);
+  background-size: 100% 100%, 80px 100%;
+  animation: rotate-spit .5s linear infinite;
+  position: relative;
+}
+.spit::after {
+  content: "";
+  position: absolute;
+  inset: -12px calc(50% - 2px);
+  background: var(--faded);
+}
+@keyframes rotate-spit { to { background-position: 0 0, 80px 0; } }
+.spin-name { font-size: 1.3rem; font-weight: 700; margin: 0; min-height: 1.4em; text-align: center; }
+
 @media (prefers-reduced-motion: reduce) {
-  .printed { animation: none; }
+  .printed, .spit { animation: none; }
 }
