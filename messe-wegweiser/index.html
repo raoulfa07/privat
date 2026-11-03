@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Messe-Wegweiser</title>
+<meta name="description" content="Einfacher Weg-Finder durch die Hallen 11 und 12 der Messe Frankfurt. In Leichter Sprache.">
+<style>
+  :root{
+    --bg:#fffdf7; --fg:#1a1a1a; --muted:#555; --card:#ffffff; --line:#d8d2c4;
+    --accent:#0b5fff; --accent-fg:#fff; --go:#0a8a3a; --stop:#c62828;
+    --hall:#eef3ff; --hall2:#fff4e5; --path:#0b5fff; --you:#c62828; --goal:#0a8a3a;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#121212; --fg:#f2f2f2; --muted:#bbb; --card:#1d1d1d; --line:#3a3a3a;
+      --accent:#6ea0ff; --accent-fg:#000; --go:#4cd17a; --stop:#ff6b6b;
+      --hall:#1c2540; --hall2:#3a2c16; --path:#6ea0ff; --you:#ff6b6b; --goal:#4cd17a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#121212; --fg:#f2f2f2; --muted:#bbb; --card:#1d1d1d; --line:#3a3a3a;
+    --accent:#6ea0ff; --accent-fg:#000; --go:#4cd17a; --stop:#ff6b6b;
+    --hall:#1c2540; --hall2:#3a2c16; --path:#6ea0ff; --you:#ff6b6b; --goal:#4cd17a;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);color:var(--fg);font:22px/1.5 system-ui,-apple-system,"Segoe UI",Arial,sans-serif}
+  main{max-width:760px;margin:0 auto;padding:16px}
+  h1{font-size:1.6em;margin:.2em 0 .1em}
+  h2{font-size:1.25em;margin:1em 0 .4em}
+  p{margin:.4em 0}
+  .sub{color:var(--muted);font-size:.85em}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+  button{font:inherit;cursor:pointer;border-radius:16px;border:3px solid var(--line);background:var(--card);color:var(--fg);padding:14px}
+  button:focus-visible{outline:4px solid var(--accent);outline-offset:3px}
+  .tile{display:flex;flex-direction:column;align-items:center;gap:6px;min-height:130px;justify-content:center;text-align:center}
+  .tile .ico{font-size:2.2em;line-height:1}
+  .tile.sel{border-color:var(--accent);background:var(--hall)}
+  .big{width:100%;font-size:1.15em;font-weight:700;padding:18px;border-color:var(--accent);background:var(--accent);color:var(--accent-fg)}
+  .row{display:flex;gap:12px;flex-wrap:wrap}
+  .row button{flex:1 1 140px}
+  .card{background:var(--card);border:3px solid var(--line);border-radius:20px;padding:16px;margin:12px 0}
+  .step-no{font-size:.85em;color:var(--muted)}
+  .arrow{font-size:4.5em;line-height:1;text-align:center;margin:8px 0}
+  .say{font-size:1.3em;font-weight:700;text-align:center}
+  .hint{text-align:center;color:var(--muted)}
+  svg{width:100%;height:auto;display:block;border-radius:14px;border:3px solid var(--line);background:var(--card)}
+  .dots{display:flex;gap:6px;justify-content:center;margin:8px 0;flex-wrap:wrap}
+  .dots span{width:16px;height:16px;border-radius:50%;background:var(--line)}
+  .dots span.on{background:var(--accent)}
+  .dots span.done{background:var(--go)}
+  .help{border-color:var(--stop);color:var(--stop);font-weight:700}
+  .hidden{display:none}
+  footer{margin:24px 0 8px;color:var(--muted);font-size:.7em}
+  .demo{font-size:.7em;color:var(--muted);border:2px dashed var(--line);border-radius:12px;padding:8px 12px;margin-top:8px}
+</style>
+</head>
+<body>
+<main>
+
+  <!-- Schritt 1: Wo bist du? -->
+  <section id="s-start">
+    <h1>🧭 Messe-Wegweiser</h1>
+    <p>Ich helfe dir, deinen Weg zu finden.</p>
+    <p>Immer nur <b>ein Schritt</b>. Ganz in Ruhe.</p>
+
+    <h2>1. Wo bist du jetzt?</h2>
+    <div class="grid" id="from"></div>
+
+    <h2>2. Wohin willst du?</h2>
+    <div class="grid" id="to"></div>
+
+    <div style="margin-top:16px">
+      <button class="big" id="go">Los geht's ➜</button>
+    </div>
+    <p class="hint" id="msg" aria-live="polite"></p>
+  </section>
+
+  <!-- Schritt 2: Der Weg -->
+  <section id="s-route" class="hidden">
+    <div class="dots" id="dots" aria-hidden="true"></div>
+    <div class="card" aria-live="polite">
+      <div class="step-no" id="stepno"></div>
+      <div class="arrow" id="arrow" aria-hidden="true">⬆️</div>
+      <div class="say" id="say"></div>
+      <p class="hint" id="look"></p>
+    </div>
+    <div class="row">
+      <button id="back">⬅ Zurück</button>
+      <button id="speak">🔊 Vorlesen</button>
+    </div>
+    <div style="margin-top:12px">
+      <button class="big" id="next">Ich bin da ✓</button>
+    </div>
+    <h2>Karte</h2>
+    <p class="sub">🔴 = du bist hier. 🟢 = da willst du hin. Blau = dein Weg.</p>
+    <div id="map"></div>
+    <div class="row" style="margin-top:12px">
+      <button id="restart">🏠 Neues Ziel</button>
+      <button class="help" id="helpbtn">🆘 Ich brauche Hilfe</button>
+    </div>
+    <div class="card hidden" id="helpbox">
+      <p><b>Keine Angst. Das ist okay.</b></p>
+      <p>Bleib stehen.</p>
+      <p>Such eine Person mit <b>Namens-Schild</b> oder <b>Messe-Weste</b>.</p>
+      <p>Zeig ihr diesen Bildschirm.</p>
+      <p>Oder geh zum <b>Info-Stand ℹ️</b>.</p>
+      <p id="helpcontact"></p>
+    </div>
+  </section>
+
+  <!-- Fertig -->
+  <section id="s-done" class="hidden">
+    <div class="card" style="text-align:center">
+      <div class="arrow">🎉</div>
+      <p class="say">Super! Du bist angekommen.</p>
+      <p id="donewhere"></p>
+    </div>
+    <button class="big" id="again">🏠 Neues Ziel</button>
+  </section>
+
+  <footer>
+    <div id="author"></div>
+    <div class="demo">Hinweis: Die Karte ist vereinfacht. Stand-Nummern und Wege sind Beispiel-Daten.
+      Vor dem Einsatz bitte mit dem echten Hallenplan abgleichen (Datei: <code>index.html</code>, Abschnitt <code>DATEN</code>).</div>
+  </footer>
+</main>
+
+<script>
+/* ================= DATEN (hier anpassen) ================= */
+const CONFIG = {
+  author: "Lutz Schwanz",
+  helpContact: "" // z. B. "Ruf an: 0151 …"
+};
+
+// Orte auf der Karte. x/y in Karten-Koordinaten (0–1000 / 0–620).
+// "look" = woran man den Ort erkennt.
+const PLACES = {
+  eingang:  {name:"Eingang",          ico:"🚪", x:80,  y:540, look:"Große Glastüren. Hier kommst du rein."},
+  info:     {name:"Info-Stand",       ico:"ℹ️", x:240, y:540, look:"Ein Schild mit einem großen i."},
+  wc1:      {name:"Toilette",         ico:"🚻", x:240, y:420, look:"Ein Schild mit Mann und Frau."},
+  essen:    {name:"Essen & Trinken",  ico:"🍽️", x:500, y:540, look:"Tische, Stühle und eine Theke."},
+  h11:      {name:"Halle 11",         ico:"🏭", x:300, y:250, look:"Über der Tür steht groß: 11."},
+  h12:      {name:"Halle 12",         ico:"🏢", x:740, y:250, look:"Über der Tür steht groß: 12."},
+  standA:   {name:"Stand C21",        ico:"⭐", x:180, y:120, look:"Auf dem Boden oder am Schild steht: C21."},
+  standB:   {name:"Stand E40",        ico:"⭐", x:860, y:120, look:"Auf dem Boden oder am Schild steht: E40."},
+  wc2:      {name:"Toilette Halle 12",ico:"🚻", x:900, y:420, look:"Ein Schild mit Mann und Frau."},
+  ausgang:  {name:"Ausgang",          ico:"🏁", x:900, y:540, look:"Ein grünes Schild mit einem laufenden Männchen."},
+  // Zwischenpunkte (nicht wählbar)
+  gang:     {name:"Großer Gang",      x:240, y:470, hidden:true, look:"Ein breiter Weg mit vielen Menschen."},
+  brücke:   {name:"Verbindung 11 ↔ 12", x:520, y:250, hidden:true, look:"Ein Durchgang zwischen den zwei Hallen."},
+  gang12:   {name:"Gang Halle 12",    x:740, y:470, hidden:true, look:"Ein breiter Weg."}
+};
+
+// Welche Orte direkt verbunden sind.
+const LINKS = [
+  ["eingang","info"],["info","gang"],["gang","wc1"],["gang","essen"],["gang","h11"],
+  ["h11","standA"],["h11","brücke"],["brücke","h12"],["h12","standB"],
+  ["essen","gang12"],["gang12","h12"],["gang12","wc2"],["gang12","ausgang"],["essen","ausgang"]
+];
+/* ========================================================= */
+
+const $ = id => document.getElementById(id);
+let from = null, to = null, route = [], step = 0;
+
+const adj = {};
+for (const k in PLACES) adj[k] = [];
+LINKS.forEach(([a,b]) => { adj[a].push(b); adj[b].push(a); });
+const dist = (a,b) => Math.hypot(PLACES[a].x-PLACES[b].x, PLACES[a].y-PLACES[b].y);
+
+function shortest(a, b){
+  const d = {}, prev = {}, todo = new Set(Object.keys(PLACES));
+  for (const k of todo) d[k] = Infinity; d[a] = 0;
+  while (todo.size){
+    let u = null; for (const k of todo) if (u===null || d[k]<d[u]) u = k;
+    todo.delete(u); if (u===b) break;
+    for (const v of adj[u]) { const nd = d[u]+dist(u,v); if (nd<d[v]) { d[v]=nd; prev[v]=u; } }
+  }
+  const p = [b]; while (p[0]!==a) { if (!prev[p[0]]) return null; p.unshift(prev[p[0]]); }
+  return p;
+}
+
+// Richtung als einfache Ansage
+function turn(prevNode, cur, next){
+  const h = (p,q) => Math.atan2(PLACES[q].y-PLACES[p].y, PLACES[q].x-PLACES[p].x);
+  if (!prevNode) return {arrow:"⬆️", text:"Geh los"};
+  let diff = (h(cur,next) - h(prevNode,cur)) * 180/Math.PI;
+  while (diff>180) diff-=360; while (diff<-180) diff+=360;
+  if (diff > 45)  return {arrow:"➡️", text:"Geh nach rechts"};
+  if (diff < -45) return {arrow:"⬅️", text:"Geh nach links"};
+  return {arrow:"⬆️", text:"Geh geradeaus"};
+}
+
+function tiles(el, pick, getSel){
+  el.innerHTML = "";
+  for (const [k,p] of Object.entries(PLACES)){
+    if (p.hidden) continue;
+    const b = document.createElement("button");
+    b.className = "tile"; b.setAttribute("aria-pressed","false");
+    b.innerHTML = `<span class="ico" aria-hidden="true">${p.ico}</span><span>${p.name}</span>`;
+    b.onclick = () => { pick(k); render(); };
+    b.dataset.k = k; el.appendChild(b);
+  }
+}
+function render(){
+  for (const [el,sel] of [[$("from"),from],[$("to"),to]])
+    el.querySelectorAll("button").forEach(b => {
+      const on = b.dataset.k===sel; b.classList.toggle("sel",on); b.setAttribute("aria-pressed",on);
+    });
+}
+
+function show(id){ ["s-start","s-route","s-done"].forEach(s => $(s).classList.toggle("hidden", s!==id)); window.scrollTo(0,0); }
+
+function start(){
+  if (!from) return msg("Tipp zuerst an: Wo bist du jetzt?");
+  if (!to)   return msg("Tipp jetzt an: Wohin willst du?");
+  if (from===to) return msg("Da bist du schon! 😊");
+  route = shortest(from,to);
+  if (!route) return msg("Diesen Weg kenne ich leider nicht. Frag am Info-Stand.");
+  step = 1; msg(""); show("s-route"); drawStep();
+}
+function msg(t){ $("msg").textContent = t; if (t) speak(t); }
+
+function drawStep(){
+  const cur = route[step-1], next = route[step], prev = route[step-2];
+  const t = turn(prev, cur, next), P = PLACES[next];
+  const total = route.length-1;
+  $("stepno").textContent = `Schritt ${step} von ${total}`;
+  $("arrow").textContent = t.arrow;
+  $("say").textContent = `${t.text} bis: ${P.name}`;
+  $("look").textContent = P.look || "";
+  $("next").textContent = step===total ? "Ich bin am Ziel ✓" : "Ich bin da ✓";
+  $("back").disabled = step===1;
+  $("dots").innerHTML = Array.from({length:total},(_,i)=>`<span class="${i+1<step?'done':i+1===step?'on':''}"></span>`).join("");
+  drawMap(cur, next);
+  speak(`${t.text} bis ${P.name}. ${P.look||""}`);
+}
+
+function drawMap(cur, next){
+  const pts = route.map(k => `${PLACES[k].x},${PLACES[k].y}`).join(" ");
+  const done = route.slice(0,step).map(k => `${PLACES[k].x},${PLACES[k].y}`).join(" ");
+  const label = k => { const p = PLACES[k]; if (p.hidden) return ""; const a = p.x>820?"end":p.x<160?"start":"middle", tx = a==="end"?p.x+30:a==="start"?p.x-40:p.x; return `<text x="${tx}" y="${p.y-26}" text-anchor="${a}" font-size="26" fill="currentColor">${p.ico} ${p.name}</text>`; };
+  const shown = new Set([...route, ...Object.keys(PLACES).filter(k=>!PLACES[k].hidden)]);
+  $("map").innerHTML = `
+  <svg viewBox="0 0 1000 620" role="img" aria-label="Karte. Dein Weg ist blau." style="color:var(--fg)">
+    <rect x="30" y="40" width="440" height="330" rx="20" fill="var(--hall)" stroke="var(--line)" stroke-width="4"/>
+    <text x="60" y="350" font-size="44" font-weight="700" fill="currentColor" opacity=".35">HALLE 11</text>
+    <rect x="570" y="40" width="400" height="330" rx="20" fill="var(--hall2)" stroke="var(--line)" stroke-width="4"/>
+    <text x="600" y="350" font-size="44" font-weight="700" fill="currentColor" opacity=".35">HALLE 12</text>
+    <rect x="30" y="400" width="940" height="190" rx="20" fill="none" stroke="var(--line)" stroke-width="4" stroke-dasharray="12 10"/>
+    <polyline points="${pts}" fill="none" stroke="var(--path)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round" opacity=".35"/>
+    <polyline points="${done}" fill="none" stroke="var(--path)" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+    <line x1="${PLACES[cur].x}" y1="${PLACES[cur].y}" x2="${PLACES[next].x}" y2="${PLACES[next].y}" stroke="var(--path)" stroke-width="14" stroke-linecap="round" stroke-dasharray="2 22"/>
+    ${[...shown].map(label).join("")}
+    <circle cx="${PLACES[to].x}" cy="${PLACES[to].y}" r="18" fill="var(--goal)"/>
+    <circle cx="${PLACES[cur].x}" cy="${PLACES[cur].y}" r="20" fill="var(--you)" stroke="#fff" stroke-width="4"/>
+  </svg>`;
+}
+
+function speak(t){
+  try{ if(!("speechSynthesis" in window) || !speakOn) return;
+    speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t); u.lang="de-DE"; u.rate=.9; speechSynthesis.speak(u);
+  }catch(e){}
+}
+let speakOn = false;
+
+tiles($("from"), k => from = k);
+tiles($("to"),   k => to = k);
+$("go").onclick = start;
+$("next").onclick = () => {
+  if (step >= route.length-1){ $("donewhere").textContent = `Du bist bei: ${PLACES[to].name} ${PLACES[to].ico}`; show("s-done"); speak("Super! Du bist angekommen."); return; }
+  step++; drawStep();
+};
+$("back").onclick = () => { if (step>1){ step--; drawStep(); } };
+$("speak").onclick = () => { speakOn = true; drawStep(); };
+const reset = () => { from = to = null; render(); $("helpbox").classList.add("hidden"); show("s-start"); };
+$("restart").onclick = reset; $("again").onclick = reset;
+$("helpbtn").onclick = () => { $("helpbox").classList.toggle("hidden"); speakOn && speak("Keine Angst. Bleib stehen. Such eine Person mit Namens-Schild. Zeig ihr diesen Bildschirm."); };
+$("helpcontact").textContent = CONFIG.helpContact;
+$("author").textContent = CONFIG.author ? `Autor: ${CONFIG.author}` : "";
+</script>
+</body>
+</html>
